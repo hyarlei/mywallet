@@ -1,0 +1,17 @@
+{
+  "name": "mywallet-frontend",
+  "version": "1.0.0",
+  "description": "MyWallet Frontend - Gerenciador de Finanças Pessoais",
+  "scripts": {
+    "dev": "npx http-server -p 8000 -o",
+    "start": "npx http-server -p 8000",
+    "serve": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "wallet",
+    "finance",
+    "frontend"
+  ],
+  "author": "Hyarlei Silva",
+  "license": "MIT"
+}
