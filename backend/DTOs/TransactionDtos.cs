@@ -21,6 +21,7 @@ namespace MyWallet.API.DTOs
         string Type, // Devolvemos string ("Income") em vez de número (1) pra facilitar o front
         DateTime Date,
         string CategoryName, // Já mandamos o nome da categoria pronto
+        Guid CategoryId, // Adiciona o CategoryId para edição
         bool IsPaid
     );
 

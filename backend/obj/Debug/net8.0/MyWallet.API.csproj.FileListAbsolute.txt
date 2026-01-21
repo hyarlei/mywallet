@@ -220,3 +220,13 @@
 /home/hyarleisilva/MyWallet.API/backend/obj/Debug/net8.0/MyWallet.API.pdb
 /home/hyarleisilva/MyWallet.API/backend/obj/Debug/net8.0/MyWallet.API.genruntimeconfig.cache
 /home/hyarleisilva/MyWallet.API/backend/obj/Debug/net8.0/ref/MyWallet.API.dll
+/home/hyarleisilva/MyWallet.API/backend/obj/Debug/net8.0/MyWallet.API.sourcelink.json
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Microsoft.AspNetCore.Authentication.Google.dll
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Microsoft.IdentityModel.Abstractions.dll
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Microsoft.IdentityModel.JsonWebTokens.dll
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Microsoft.IdentityModel.Logging.dll
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Microsoft.IdentityModel.Protocols.dll
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Microsoft.IdentityModel.Tokens.dll
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/System.IdentityModel.Tokens.Jwt.dll

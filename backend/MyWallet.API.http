@@ -1,6 +1,0 @@
-@MyWallet.API_HostAddress = http://localhost:5296
-
-GET {{MyWallet.API_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

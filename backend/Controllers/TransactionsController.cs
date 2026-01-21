@@ -1,13 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyWallet.API.Data;
 using MyWallet.API.Domain.Entities;
 using MyWallet.API.DTOs;
+using System.Security.Claims;
 
 namespace MyWallet.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class TransactionsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -22,9 +25,15 @@ namespace MyWallet.API.Controllers
         [HttpGet]
         public async Task<ActionResult<List<TransactionDto>>> GetAll()
         {
-            // Busca no banco incluindo a Categoria (Join)
+            // Pegar userId do token JWT
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized("Token inválido.");
+
+            // Busca no banco apenas transações do usuário autenticado
             var transactions = await _context.Transactions
-                .Include(t => t.Category) 
+                .Include(t => t.Category)
+                .Where(t => t.UserId == userId)
                 .OrderByDescending(t => t.Date)
                 .ToListAsync();
 
@@ -36,6 +45,7 @@ namespace MyWallet.API.Controllers
                 t.Type.ToString(),
                 t.Date,
                 t.Category?.Name ?? "Sem Categoria",
+                t.CategoryId,
                 t.IsPaid
             ));
 
@@ -74,10 +84,61 @@ namespace MyWallet.API.Controllers
                 transaction.Type.ToString(),
                 transaction.Date,
                 category.Name,
+                transaction.CategoryId,
                 transaction.IsPaid
             );
 
             return CreatedAtAction(nameof(GetAll), new { id = transaction.Id }, responseDto);
+        }
+
+        // PUT: api/transactions/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] CreateTransactionDto dto)
+        {
+            // Busca a transação existente
+            var transaction = await _context.Transactions.FindAsync(id);
+            if (transaction == null) return NotFound("Transação não encontrada.");
+
+            // Valida se a categoria existe
+            var category = await _context.Categories.FindAsync(dto.CategoryId);
+            if (category == null) return BadRequest("Categoria não encontrada.");
+
+            // Atualiza os dados
+            transaction.Description = dto.Description;
+            transaction.Amount = dto.Amount;
+            transaction.Date = dto.Date;
+            transaction.Type = dto.Type;
+            transaction.CategoryId = dto.CategoryId;
+            transaction.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            // Retorna o DTO atualizado
+            var responseDto = new TransactionDto(
+                transaction.Id,
+                transaction.Description,
+                transaction.Amount,
+                transaction.Type.ToString(),
+                transaction.Date,
+                category.Name,
+                transaction.CategoryId,
+                transaction.IsPaid
+            );
+
+            return Ok(responseDto);
+        }
+
+        // DELETE: api/transactions/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var transaction = await _context.Transactions.FindAsync(id);
+            if (transaction == null) return NotFound("Transação não encontrada.");
+
+            _context.Transactions.Remove(transaction);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Transação deletada com sucesso." });
         }
     }
 }

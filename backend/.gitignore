@@ -1,0 +1,4 @@
+appsettings.json
+# Ignore build outputs
+/bin/
+/obj/

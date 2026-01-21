@@ -1,5 +1,9 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using MyWallet.API.Data;
+using MyWallet.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +23,43 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Configurar Npgsql para usar timestamp sem timezone
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+// Registrar TokenService
+builder.Services.AddScoped<TokenService>();
+
+// Registrar HttpClientFactory
+builder.Services.AddHttpClient();
+
+// Configuração de Autenticação JWT
+var jwtSecret = builder.Configuration["Jwt:Secret"]!;
+var key = Encoding.ASCII.GetBytes(jwtSecret);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidateAudience = true,
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+})
+.AddGoogle(options =>
+{
+    options.ClientId = builder.Configuration["Google:ClientId"]!;
+    options.ClientSecret = builder.Configuration["Google:ClientSecret"]!;
+});
 
 // 1. Adicione o serviço de CORS
 builder.Services.AddCors(options =>
@@ -42,6 +83,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

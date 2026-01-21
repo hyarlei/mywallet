@@ -1,13 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyWallet.API.Data;
 using MyWallet.API.DTOs;
-using MyWallet.API.Domain.Entities; // Ajuste namespaces se precisar
+using MyWallet.API.Domain.Entities;
+using System.Security.Claims;
 
 namespace MyWallet.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class DashboardController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -20,8 +23,10 @@ namespace MyWallet.API.Controllers
         [HttpGet]
         public async Task<ActionResult<DashboardResponseDto>> GetDashboard()
         {
-            // O ID do usuário "fixo" por enquanto (depois pegaremos do Login)
-            var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+            // Pegar userId do token JWT
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized("Token inválido.");
 
             // 1. Busca todas as transações desse usuário
             var transactions = await _context.Transactions
