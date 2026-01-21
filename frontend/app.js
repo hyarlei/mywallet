@@ -1,7 +1,10 @@
-// CONFIGURAÇÃO DA API (Verifique a porta do seu Swagger)
-const API_URL = "http://localhost:5296/api"; 
-// Usuário Fixo para testes (O mesmo que criamos no Banco)
-const USER_ID = "11111111-1111-1111-1111-111111111111";
+// CONFIGURAÇÃO DA API
+const API_URL = "http://localhost:5296/api";
+const GOOGLE_CLIENT_ID = "1047827393402-iu1dq3ur4tgs6vut9pt8gri9nolaoblh.apps.googleusercontent.com";
+
+// Estado de autenticação
+let authToken = null;
+let currentUser = null;
 
 // --- CONFIGURAÇÕES VISUAIS ---
 Chart.register(ChartDataLabels);
@@ -9,13 +12,17 @@ Chart.register(ChartDataLabels);
 // Mapeamento de Cores e Ícones (Frontend)
 // Nota: O Backend manda o ID e Nome, aqui definimos a "roupa" da categoria
 const categoryStyles = {
-    'Freelas': { icon: 'laptop', color: 'text-emerald-600', bg: 'bg-emerald-100' },
-    'Salário': { icon: 'banknote', color: 'text-green-600', bg: 'bg-green-100' },
-    'Alimentação': { icon: 'utensils', color: 'text-orange-600', bg: 'bg-orange-100' },
-    'Transporte': { icon: 'car', color: 'text-blue-600', bg: 'bg-blue-100' },
-    'Casa': { icon: 'home', color: 'text-indigo-600', bg: 'bg-indigo-100' },
-    'Lazer': { icon: 'gamepad-2', color: 'text-purple-600', bg: 'bg-purple-100' },
-    'Outros': { icon: 'package', color: 'text-gray-600', bg: 'bg-gray-100' }
+    'Freelas': { icon: 'laptop', emoji: '💻', color: 'text-emerald-600', bg: 'bg-emerald-100' },
+    'Salário': { icon: 'banknote', emoji: '💸', color: 'text-green-600', bg: 'bg-green-100' },
+    'Alimentação': { icon: 'utensils', emoji: '🍔', color: 'text-orange-600', bg: 'bg-orange-100' },
+    'Transporte': { icon: 'car', emoji: '🚗', color: 'text-blue-600', bg: 'bg-blue-100' },
+    'Casa': { icon: 'home', emoji: '🏠', color: 'text-indigo-600', bg: 'bg-indigo-100' },
+    'Lazer': { icon: 'gamepad-2', emoji: '🎮', color: 'text-purple-600', bg: 'bg-purple-100' },
+    'Saúde': { icon: 'heart', emoji: '🏥', color: 'text-red-600', bg: 'bg-red-100' },
+    'Educação': { icon: 'book', emoji: '📚', color: 'text-blue-600', bg: 'bg-blue-100' },
+    'Investimentos': { icon: 'trending-up', emoji: '📈', color: 'text-green-600', bg: 'bg-green-100' },
+    'Compras': { icon: 'shopping-bag', emoji: '🛍️', color: 'text-pink-600', bg: 'bg-pink-100' },
+    'Outros': { icon: 'package', emoji: '📦', color: 'text-gray-600', bg: 'bg-gray-100' }
 };
 
 const bankStyles = {
@@ -58,14 +65,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicializa ícones Lucide
     if(window.lucide) lucide.createIcons();
     
-    // Simula Login Automático (Já que estamos em Dev)
-    els.loginBtn.addEventListener('click', () => {
-        els.loginScreen.classList.add('hidden');
-        els.appScreen.classList.remove('hidden');
-        els.appScreen.classList.add('fade-in');
-        els.userNameDisplay.textContent = "Hyarlei Dev";
-        initApp();
-    });
+    // Inicializar Google Sign-In
+    inicializarGoogleSignIn();
+    
+    // Verificar se já está logado
+    const savedToken = localStorage.getItem('authToken');
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedToken && savedUser) {
+        authToken = savedToken;
+        currentUser = JSON.parse(savedUser);
+        mostrarApp();
+    }
 });
 
 async function initApp() {
@@ -86,8 +96,14 @@ async function initApp() {
 
 async function carregarCategorias() {
     try {
-        const res = await fetch(`${API_URL}/Categories`);
+        const res = await fetch(`${API_URL}/Categories`, {
+            headers: getFetchHeaders()
+        });
         if (!res.ok) {
+            if (res.status === 401) {
+                logout();
+                return;
+            }
             throw new Error(`Erro na API Categories: ${res.status} ${res.statusText}`);
         }
         const categorias = await res.json();
@@ -98,7 +114,7 @@ async function carregarCategorias() {
             option.value = cat.id; // GUID
             // Tenta pegar o ícone do estilo, se não achar usa padrão
             const style = categoryStyles[cat.name] || categoryStyles['Outros'];
-            option.textContent = cat.name;
+            option.textContent = `${style.emoji} ${cat.name}`;
             option.setAttribute('data-type', cat.type); // 1 = Income, 2 = Expense
             els.categorySelect.appendChild(option);
         });
@@ -110,15 +126,27 @@ async function carregarCategorias() {
 
 async function carregarTransacoes() {
     // 1. Pega Lista Completa
-    const res = await fetch(`${API_URL}/Transactions`);
+    const res = await fetch(`${API_URL}/Transactions`, {
+        headers: getFetchHeaders()
+    });
     if (!res.ok) {
+        if (res.status === 401) {
+            logout();
+            return;
+        }
         throw new Error(`Erro na API Transactions: ${res.status} ${res.statusText}`);
     }
     const data = await res.json();
     
     // 2. Pega Resumo do Dashboard (Calculado no C#)
-    const resDash = await fetch(`${API_URL}/Dashboard`);
+    const resDash = await fetch(`${API_URL}/Dashboard`, {
+        headers: getFetchHeaders()
+    });
     if (!resDash.ok) {
+        if (resDash.status === 401) {
+            logout();
+            return;
+        }
         throw new Error(`Erro na API Dashboard: ${resDash.status} ${resDash.statusText}`);
     }
     const dataDash = await resDash.json();
@@ -141,29 +169,23 @@ els.form.addEventListener('submit', async (e) => {
     const categoryId = els.categorySelect.value;
     
     // Lógica para definir Tipo (Income/Expense) baseado na categoria selecionada
-    // No mundo ideal, o Backend validaria isso, mas vamos inferir aqui
-    // Se a categoria for "Freelas" ou "Salário" (ID fixo no banco ou nome)
-    // Vamos simplificar: Se a categoria selecionada tem nome de entrada, é entrada.
     const selectedOption = els.categorySelect.options[els.categorySelect.selectedIndex];
-    // Aqui usamos um hack simples: Se o usuário selecionou uma categoria que sabemos que é entrada
-    // No futuro, podemos trazer o "Type" dentro do objeto category do banco.
-    // Padrão: 2 (Expense). Se for a categoria de Freelas que criamos (ID 222...), é 1.
-    let type = 2; 
+    let type = 2; // Padrão: Expense
     if(categoryId.includes('2222')) type = 1; // ID do Freela no nosso seed
 
     const payload = {
         description: desc,
-        amount: amountVal, // Manda positivo, o Backend/Front decide sinal na exibição
+        amount: amountVal,
         date: dateVal,
         type: type,
         categoryId: categoryId,
-        userId: USER_ID
+        userId: currentUser.userId
     };
 
     try {
         const res = await fetch(`${API_URL}/Transactions`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getFetchHeaders(),
             body: JSON.stringify(payload)
         });
 
@@ -171,7 +193,7 @@ els.form.addEventListener('submit', async (e) => {
             showToast("Transação salva com sucesso!");
             els.form.reset();
             document.getElementById('date').valueAsDate = new Date();
-            await carregarTransacoes(); // Recarrega tudo
+            await carregarTransacoes();
         } else {
             alert("Erro ao salvar no servidor.");
         }
@@ -229,9 +251,14 @@ function renderList(transactions) {
                 ${sinal} ${valorFormatado}
             </td>
             <td class="p-4 text-center">
-                <button class="text-gray-400 hover:text-red-500 transition cursor-not-allowed" title="Em breve">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
+                <div class="flex gap-2 justify-center">
+                    <button onclick="editarTransacao('${t.id}')" class="text-blue-500 hover:text-blue-700 transition" title="Editar">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="deletarTransacao('${t.id}')" class="text-red-500 hover:text-red-700 transition" title="Deletar">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </td>
         `;
         els.listElement.appendChild(row);
@@ -418,4 +445,205 @@ function verificarTema() {
             if(allTransactions.length > 0) renderCharts(filteredTransactions);
         });
     }
+}
+
+// --- EDITAR E DELETAR TRANSAÇÕES ---
+
+let transacaoEditando = null;
+
+window.editarTransacao = async (id) => {
+    // Busca a transação nos dados carregados
+    const transacao = allTransactions.find(t => t.id === id);
+    if (!transacao) {
+        alert('Transação não encontrada.');
+        return;
+    }
+
+    transacaoEditando = transacao;
+
+    // Preenche o modal de edição
+    document.getElementById('edit-id').value = transacao.id;
+    document.getElementById('edit-desc').value = transacao.description;
+    document.getElementById('edit-amount').value = formatarMoeda(transacao.amount);
+    document.getElementById('edit-date').value = transacao.date.split('T')[0];
+
+    // Mostra o modal
+    document.getElementById('edit-modal').classList.remove('hidden');
+};
+
+window.fecharModal = () => {
+    document.getElementById('edit-modal').classList.add('hidden');
+    transacaoEditando = null;
+};
+
+// Handler do formulário de edição
+document.getElementById('edit-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const id = document.getElementById('edit-id').value;
+    const desc = document.getElementById('edit-desc').value;
+    const amountStr = document.getElementById('edit-amount').value;
+    const amountVal = limparValorMoeda(amountStr);
+    const dateVal = document.getElementById('edit-date').value;
+
+    const payload = {
+        description: desc,
+        amount: amountVal,
+        date: dateVal,
+        type: transacaoEditando.type === "Income" ? 1 : 2,
+        categoryId: transacaoEditando.categoryId || els.categorySelect.value,
+        userId: currentUser.userId
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/Transactions/${id}`, {
+            method: 'PUT',
+            headers: getFetchHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            showToast("Transação atualizada com sucesso!");
+            fecharModal();
+            await carregarTransacoes();
+        } else {
+            alert("Erro ao atualizar no servidor.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Erro de conexão.");
+    }
+});
+
+window.deletarTransacao = async (id) => {
+    if (!confirm('Tem certeza que deseja deletar esta transação?')) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/Transactions/${id}`, {
+            method: 'DELETE',
+            headers: getFetchHeaders()
+        });
+
+        if (res.ok) {
+            showToast("Transação deletada com sucesso!");
+            await carregarTransacoes();
+        } else {
+            alert("Erro ao deletar no servidor.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Erro de conexão.");
+    }
+};
+
+// --- AUTENTICAÇÃO GOOGLE ---
+function inicializarGoogleSignIn() {
+    if (!GOOGLE_CLIENT_ID || 
+        GOOGLE_CLIENT_ID === 'SEU_GOOGLE_CLIENT_ID.apps.googleusercontent.com' ||
+        GOOGLE_CLIENT_ID.startsWith('COLOQUE_SEU')) {
+        document.getElementById("google-signin-button").innerHTML = `
+            <div class="text-center space-y-4">
+                <div class="text-red-500 font-semibold mb-3">🔐 Configure o Google OAuth</div>
+                <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-left text-sm space-y-2">
+                    <p class="font-semibold">Passos:</p>
+                    <ol class="list-decimal ml-4 space-y-1 text-gray-700 dark:text-gray-300">
+                        <li>Acesse <a href="https://console.cloud.google.com" target="_blank" class="text-blue-600 underline">Google Cloud Console</a></li>
+                        <li>Crie um projeto OAuth 2.0</li>
+                        <li>Adicione: <code class="bg-white dark:bg-gray-900 px-1">http://localhost:8000</code> nas origens</li>
+                        <li>Copie o Client ID e Client Secret</li>
+                        <li>Atualize frontend/app.js e backend/appsettings.json</li>
+                    </ol>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    try {
+        google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleCallback
+        });
+        
+        google.accounts.id.renderButton(
+            document.getElementById("google-signin-button"),
+            { 
+                theme: "outline", 
+                size: "large",
+                width: 400,
+                text: "signin_with",
+                locale: "pt-BR"
+            }
+        );
+    } catch (error) {
+        console.error('Erro ao inicializar Google Sign-In:', error);
+        document.getElementById("google-signin-button").innerHTML = '<p class="text-sm text-red-500">Erro ao carregar Google Sign-In</p>';
+    }
+}
+
+async function handleGoogleCallback(response) {
+    toggleLoading(true);
+    
+    try {
+        const res = await fetch(`${API_URL}/Auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken: response.credential })
+        });
+
+        if (!res.ok) {
+            throw new Error('Falha na autenticação');
+        }
+
+        const data = await res.json();
+        
+        // Salvar token e dados do usuário
+        authToken = data.token;
+        currentUser = {
+            userId: data.userId,
+            email: data.email,
+            name: data.name
+        };
+        
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        mostrarApp();
+    } catch (error) {
+        console.error('Erro no login:', error);
+        alert('Erro ao fazer login. Tente novamente.');
+    } finally {
+        toggleLoading(false);
+    }
+}
+
+function mostrarApp() {
+    els.loginScreen.classList.add('hidden');
+    els.appScreen.classList.remove('hidden');
+    els.appScreen.classList.add('fade-in');
+    els.userNameDisplay.textContent = currentUser.name;
+    initApp();
+}
+
+function logout() {
+    authToken = null;
+    currentUser = null;
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    
+    els.appScreen.classList.add('hidden');
+    els.loginScreen.classList.remove('hidden');
+    
+    // Recarregar para limpar estado
+    window.location.reload();
+}
+
+// Função auxiliar para adicionar token nas requisições
+function getFetchHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+    };
 }
