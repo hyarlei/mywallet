@@ -32,6 +32,14 @@
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .credit-card { min-width: 280px; }
+            #toast-container { top: auto; bottom: 1rem; right: 1rem; left: 1rem; }
+            .toast-enter { animation: slideInBottom 0.3s ease-out forwards; }
+            @keyframes slideInBottom { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
+        }
+        
         /* Estilos de validação */
         .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
         .dark .input-error { border-color: #ef4444 !important; background-color: #7f1d1d !important; }
@@ -118,6 +126,95 @@
             opacity: 0.1;
             pointer-events: none;
         }
+        
+        /* Responsividade Mobile Aprimorada */
+        @media (max-width: 640px) {
+            /* Ajustar padding global mobile */
+            body { font-size: 14px; }
+            
+            /* Modais responsivos */
+            #filtros-modal > div,
+            #edit-modal > div,
+            #edit-card-modal > div,
+            #card-modal > div,
+            #goal-modal > div,
+            #goal-amount-modal > div,
+            #category-modal > div,
+            #edit-category-modal > div {
+                max-height: 85vh;
+                margin: 1rem;
+                padding: 1.25rem;
+            }
+            
+            /* Grid de cores menor */
+            .grid-cols-8 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+            
+            /* Cartões de crédito */
+            .credit-card { 
+                min-width: 260px; 
+                padding: 1.25rem;
+            }
+            .card-number { font-size: 18px; letter-spacing: 2px; }
+            
+            /* Cards de resumo */
+            .grid.grid-cols-1.md\\:grid-cols-3 > div {
+                padding: 1.25rem !important;
+            }
+            .grid.grid-cols-1.md\\:grid-cols-3 h3 {
+                font-size: 1.5rem !important;
+            }
+            
+            /* Tabela de transações */
+            #transaction-list tr {
+                display: block;
+                margin-bottom: 1rem;
+                padding: 1rem;
+                background: #f9fafb;
+                border-radius: 0.75rem;
+                border: none !important;
+            }
+            .dark #transaction-list tr {
+                background: #374151;
+            }
+            #transaction-list td {
+                display: flex;
+                justify-content: space-between;
+                padding: 0.5rem 0 !important;
+                border: none !important;
+            }
+            #transaction-list td:before {
+                content: attr(data-label);
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 0.75rem;
+                opacity: 0.7;
+            }
+            
+            /* Controles de paginação */
+            #pagination-controls {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            /* Botões menores em mobile */
+            button, .btn {
+                font-size: 0.875rem;
+                padding: 0.625rem 1rem;
+            }
+            
+            /* Ajustar títulos */
+            h3.text-lg { font-size: 1rem; }
+            
+            /* Esconder textos em botões pequenos */
+            .hide-text-mobile { display: none; }
+        }
+        
+        @media (max-width: 480px) {
+            /* Extra small screens */
+            .grid.grid-cols-2.md\\:grid-cols-3 { grid-template-columns: 1fr; }
+            .card-number { font-size: 16px; }
+            #user-name { display: none !important; }
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-darkbg text-gray-800 dark:text-gray-100 transition-colors duration-300 relative">
@@ -137,6 +234,54 @@
             <p class="text-gray-500 dark:text-gray-400 mb-8">Gerencie suas finanças com inteligência.</p>
             
             <div id="google-signin-button"></div>
+        </div>
+    </div>
+
+    <!-- Modal Filtros Avançados -->
+    <div id="filtros-modal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white dark:bg-darkcard p-6 rounded-2xl w-full max-w-lg shadow-2xl m-4 fade-in max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                <i data-lucide="filter"></i> Filtros Avançados
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Categoria</label>
+                    <select id="filtro-categoria" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white cursor-pointer">
+                        <option value="">Todas as categorias</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Tipo</label>
+                    <select id="filtro-tipo" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white cursor-pointer">
+                        <option value="">Todos os tipos</option>
+                        <option value="Income">💰 Receitas</option>
+                        <option value="Expense">💸 Despesas</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Status</label>
+                    <select id="filtro-status" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white cursor-pointer">
+                        <option value="">Todos os status</option>
+                        <option value="true">✅ Pago</option>
+                        <option value="false">⏳ Aguardando</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Valor Mínimo</label>
+                    <input type="text" id="filtro-valor-min" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Valor Máximo</label>
+                    <input type="text" id="filtro-valor-max" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="limparFiltros()" class="flex-1 py-3 bg-gray-200 dark:bg-gray-600 rounded-xl hover:bg-gray-300 transition">
+                    <i data-lucide="x" class="w-4 h-4 inline mr-1"></i> Limpar
+                </button>
+                <button type="button" onclick="fecharFiltrosAvancados()" class="flex-1 py-3 bg-gray-200 dark:bg-gray-600 rounded-xl hover:bg-gray-300 transition">Fechar</button>
+                <button type="button" onclick="aplicarFiltrosAvancados()" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">Aplicar</button>
+            </div>
         </div>
     </div>
 
@@ -467,108 +612,120 @@
 
     <div id="app-screen" class="hidden fade-in">
         <nav class="bg-white dark:bg-darkcard border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+            <div class="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex justify-between items-center">
                 <div class="flex items-center gap-2">
-                    <div class="bg-indigo-600 p-2 rounded-lg text-white"><i data-lucide="pie-chart" class="w-5 h-5"></i></div>
-                    <span class="text-xl font-bold dark:text-white">MyWallet</span>
+                    <div class="bg-indigo-600 p-1.5 sm:p-2 rounded-lg text-white"><i data-lucide="pie-chart" class="w-4 h-4 sm:w-5 sm:h-5"></i></div>
+                    <span class="text-lg sm:text-xl font-bold dark:text-white">MyWallet</span>
                 </div>
-                <div class="flex items-center gap-4">
-                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-pointer" aria-label="Alterar Tema">
-                        <i data-lucide="moon" id="theme-icon" class="w-5 h-5"></i>
+                <div class="flex items-center gap-2 sm:gap-4">
+                    <button id="theme-toggle" class="p-1.5 sm:p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-pointer" aria-label="Alterar Tema">
+                        <i data-lucide="moon" id="theme-icon" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                     </button>
-                    <span id="user-name" class="text-sm font-medium hidden sm:block dark:text-gray-300">...</span>
-                    <button onclick="logout()" id="logout-btn" class="text-red-500 hover:text-red-700 cursor-pointer" aria-label="Sair"><i data-lucide="log-out" class="w-5 h-5"></i></button>
+                    <span id="user-name" class="text-xs sm:text-sm font-medium hidden sm:block dark:text-gray-300">...</span>
+                    <button onclick="logout()" id="logout-btn" class="text-red-500 hover:text-red-700 cursor-pointer" aria-label="Sair"><i data-lucide="log-out" class="w-4 h-4 sm:w-5 sm:h-5"></i></button>
                 </div>
             </div>
         </nav>
 
-        <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-emerald-500 p-6 rounded-2xl shadow-lg shadow-emerald-500/20 text-white card-hover relative overflow-hidden">
-                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-2 -translate-y-2"><i data-lucide="arrow-up-circle" class="w-24 h-24"></i></div>
-                    <p class="text-emerald-100 text-sm font-medium mb-1">Entradas</p>
-                    <h3 class="text-3xl font-bold" id="display-income">R$ 0,00</h3>
+        <main class="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 space-y-6 sm:space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                <div class="bg-emerald-500 p-4 sm:p-6 rounded-2xl shadow-lg shadow-emerald-500/20 text-white card-hover relative overflow-hidden">
+                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-2 -translate-y-2"><i data-lucide="arrow-up-circle" class="w-16 h-16 sm:w-24 sm:h-24"></i></div>
+                    <p class="text-emerald-100 text-xs sm:text-sm font-medium mb-1">Entradas</p>
+                    <h3 class="text-2xl sm:text-3xl font-bold" id="display-income">R$ 0,00</h3>
                 </div>
-                <div class="bg-red-500 p-6 rounded-2xl shadow-lg shadow-red-500/20 text-white card-hover relative overflow-hidden">
-                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-2 -translate-y-2"><i data-lucide="arrow-down-circle" class="w-24 h-24"></i></div>
-                    <p class="text-red-100 text-sm font-medium mb-1">Saídas</p>
-                    <h3 class="text-3xl font-bold" id="display-expense">R$ 0,00</h3>
+                <div class="bg-red-500 p-4 sm:p-6 rounded-2xl shadow-lg shadow-red-500/20 text-white card-hover relative overflow-hidden">
+                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-2 -translate-y-2"><i data-lucide="arrow-down-circle" class="w-16 h-16 sm:w-24 sm:h-24"></i></div>
+                    <p class="text-red-100 text-xs sm:text-sm font-medium mb-1">Saídas</p>
+                    <h3 class="text-2xl sm:text-3xl font-bold" id="display-expense">R$ 0,00</h3>
                 </div>
-                <div class="bg-blue-600 p-6 rounded-2xl shadow-lg shadow-blue-600/20 text-white card-hover relative overflow-hidden">
-                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-2 -translate-y-2"><i data-lucide="wallet" class="w-24 h-24"></i></div>
-                    <p class="text-blue-100 text-sm font-medium mb-1">Saldo Total</p>
-                    <h3 class="text-3xl font-bold" id="display-total">R$ 0,00</h3>
+                <div class="bg-blue-600 p-4 sm:p-6 rounded-2xl shadow-lg shadow-blue-600/20 text-white card-hover relative overflow-hidden">
+                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-2 -translate-y-2"><i data-lucide="wallet" class="w-16 h-16 sm:w-24 sm:h-24"></i></div>
+                    <p class="text-blue-100 text-xs sm:text-sm font-medium mb-1">Saldo Total</p>
+                    <h3 class="text-2xl sm:text-3xl font-bold" id="display-total">R$ 0,00</h3>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
                 <div class="lg:col-span-3">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                        <i data-lucide="credit-card" class="w-5 h-5 text-indigo-500"></i> Meus Cartões
+                    <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <i data-lucide="credit-card" class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500"></i> Meus Cartões
                     </h3>
                     <div id="cards-container" class="flex overflow-x-auto gap-4 pb-4 hide-scroll card-container-padding"></div>
                 </div>
 
                 <div class="lg:col-span-3">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i data-lucide="target" class="w-5 h-5 text-indigo-500"></i> Minhas Metas
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="target" class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500"></i> Minhas Metas
                         </h3>
-                        <button onclick="abrirModalNovaMeta()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 cursor-pointer">
+                        <button onclick="abrirModalNovaMeta()" class="w-full sm:w-auto px-3 sm:px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 cursor-pointer">
                             <i data-lucide="plus" class="w-4 h-4"></i> Nova Meta
                         </button>
                     </div>
                     <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                 </div>
 
-                <div class="lg:col-span-2 bg-white dark:bg-darkcard p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Gastos Diários</h3>
-                    <div class="h-64"><canvas id="lineChart"></canvas></div>
+                <div class="lg:col-span-2 bg-white dark:bg-darkcard p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-4">Gastos Diários</h3>
+                    <div class="h-48 sm:h-64"><canvas id="lineChart"></canvas></div>
                 </div>
-                <div class="lg:col-span-1 bg-white dark:bg-darkcard p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Por Categoria</h3>
+                <div class="lg:col-span-1 bg-white dark:bg-darkcard p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-4">Por Categoria</h3>
                     <div class="flex-1 relative flex items-center justify-center min-h-[200px]">
                         <canvas id="expenseChart"></canvas>
                         <div id="no-data-msg" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 hidden"><span class="text-sm">Sem dados</span></div>
                     </div>
                 </div>
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Painel de Alertas/Notificações -->
+            <div class="bg-white dark:bg-darkcard p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                <div class="flex items-center gap-2 mb-4">
+                    <i data-lucide="bell" class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500"></i>
+                    <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Alertas e Notificações</h3>
+                </div>
+                <div id="alertas-container" class="space-y-3">
+                    <div class="text-center py-8 text-gray-400">
+                        <i data-lucide="loader" class="w-12 h-12 mx-auto mb-2 opacity-50 animate-spin"></i>
+                        <p class="text-sm">Carregando alertas...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
                 <div class="lg:col-span-3">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i data-lucide="tag" class="w-5 h-5 text-indigo-500"></i> Gerenciar Categorias
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="tag" class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500"></i> Gerenciar Categorias
                         </h3>
-                        <button onclick="abrirModalNovaCategoria()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 cursor-pointer">
+                        <button onclick="abrirModalNovaCategoria()" class="w-full sm:w-auto px-3 sm:px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 cursor-pointer">
                             <i data-lucide="plus" class="w-4 h-4"></i> Nova Categoria
                         </button>
                     </div>
-                    <div id="categories-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+                    <div id="categories-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4"></div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-1 bg-white dark:bg-darkcard p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-5">Adicionar Movimentação</h3>
-                    <form id="transaction-form" class="space-y-4">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+                <div class="lg:col-span-1 bg-white dark:bg-darkcard p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-4 sm:mb-5">Adicionar Movimentação</h3>
+                    <form id="transaction-form" class="space-y-3 sm:space-y-4">
                         <div>
                             <label for="desc" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Descrição</label>
-                            <input type="text" id="desc" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white" required>
+                            <input type="text" id="desc" class="w-full p-2.5 sm:p-3 text-sm bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white" required>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-3 sm:gap-4">
                             <div>
                                 <label for="amount" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Valor</label>
-                                <input type="text" id="amount" onkeyup="formatarMoedaInput(this)" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white" required>
+                                <input type="text" id="amount" onkeyup="formatarMoedaInput(this)" class="w-full p-2.5 sm:p-3 text-sm bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white" required>
                             </div>
                             <div>
                                 <label for="date" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Data</label>
-                                <input type="date" id="date" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white" required>
+                                <input type="date" id="date" class="w-full p-2.5 sm:p-3 text-sm bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white" required>
                             </div>
                         </div>
                         <div>
                             <label for="category" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Categoria</label>
-                            <select id="category" aria-label="Selecionar Categoria" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white cursor-pointer">
+                            <select id="category" aria-label="Selecionar Categoria" class="w-full p-2.5 sm:p-3 text-sm bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white cursor-pointer">
                                 <option value="salary">💸 Receita</option>
                                 <option value="freelance">💻 Freelance</option>
                                 <option value="food">🍔 Alimentação</option>
@@ -584,22 +741,60 @@
                         </div>
                         <div>
                             <label for="transaction-source" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Forma de Pagamento</label>
-                            <select id="transaction-source" aria-label="Forma de Pagamento" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white cursor-pointer">
+                            <select id="transaction-source" aria-label="Forma de Pagamento" class="w-full p-2.5 sm:p-3 text-sm bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white cursor-pointer">
                                 <option value="wallet">💵 Carteira / Conta Corrente</option>
                             </select>
                         </div>
-                        <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition cursor-pointer">Adicionar</button>
+                        <button type="submit" class="w-full py-2.5 sm:py-3 text-sm sm:text-base bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition cursor-pointer">Adicionar</button>
                     </form>
                 </div>
                 <div class="lg:col-span-2 bg-white dark:bg-darkcard rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Histórico</h3>
-                        <div class="flex gap-2">
-                            <select id="month-filter" class="px-3 py-1 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-lg text-sm dark:text-white cursor-pointer" aria-label="Filtro"></select>
-                            <button onclick="exportarCSV()" class="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm dark:text-white cursor-pointer" aria-label="Exportar CSV"><i data-lucide="download" class="w-4 h-4"></i></button>
+                    <div class="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                            <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Histórico</h3>
+                            <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                                <select id="month-filter" class="flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-lg dark:text-white cursor-pointer" aria-label="Filtro de Mês"></select>
+                                <button onclick="abrirFiltrosAvancados()" class="px-2 sm:px-3 py-1.5 sm:py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs sm:text-sm dark:text-white cursor-pointer flex items-center gap-1" aria-label="Filtros Avançados" title="Filtros Avançados">
+                                    <i data-lucide="filter" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                                    <span id="filtros-ativos-badge" class="hidden ml-1 px-1.5 py-0.5 bg-indigo-600 text-white text-xs rounded-full"></span>
+                                </button>
+                                <button onclick="exportarCSV()" class="px-2 sm:px-3 py-1.5 sm:py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs sm:text-sm dark:text-white cursor-pointer" aria-label="Exportar CSV" title="Exportar CSV"><i data-lucide="download" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i></button>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <input type="text" id="search-input" placeholder="Buscar por descrição..." class="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-lg dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <i data-lucide="search" class="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                         </div>
                     </div>
                     <div class="overflow-x-auto"><table class="w-full text-left"><tbody id="transaction-list" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table></div>
+                    <div id="pagination-controls" class="p-3 sm:p-4 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-3">
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start">
+                            <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Itens por página:</span>
+                            <select id="items-per-page" class="px-2 py-1 text-xs sm:text-sm bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded dark:text-white cursor-pointer">
+                                <option value="10">10</option>
+                                <option value="20" selected>20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                            <span id="pagination-info" class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 text-center"></span>
+                            <div class="flex gap-1">
+                                <button id="btn-first-page" onclick="irParaPrimeiraPagina()" class="px-2 sm:px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed" title="Primeira página">
+                                    <i data-lucide="chevrons-left" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                                </button>
+                                <button id="btn-prev-page" onclick="irParaPaginaAnterior()" class="px-2 sm:px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed" title="Página anterior">
+                                    <i data-lucide="chevron-left" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                                </button>
+                                <button id="btn-next-page" onclick="irParaProximaPagina()" class="px-2 sm:px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed" title="Próxima página">
+                                    <i data-lucide="chevron-right" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                                </button>
+                                <button id="btn-last-page" onclick="irParaUltimaPagina()" class="px-2 sm:px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed" title="Última página">
+                                    <i data-lucide="chevrons-right" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
