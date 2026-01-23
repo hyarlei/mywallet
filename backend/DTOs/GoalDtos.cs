@@ -4,11 +4,21 @@ namespace MyWallet.API.DTOs
 {
     // DTO para criar/atualizar meta
     public record CreateGoalDto(
-        [Required] string Title,
-        [Required] decimal TargetAmount,
+        [Required(ErrorMessage = "O título da meta é obrigatório")]
+        [StringLength(100, MinimumLength = 3, ErrorMessage = "O título deve ter entre 3 e 100 caracteres")]
+        string Title,
+        
+        [Required(ErrorMessage = "O valor alvo é obrigatório")]
+        [Range(0.01, 999999999.99, ErrorMessage = "O valor alvo deve estar entre 0.01 e 999.999.999,99")]
+        decimal TargetAmount,
+        
+        [Range(0, 999999999.99, ErrorMessage = "O valor atual deve estar entre 0 e 999.999.999,99")]
         decimal CurrentAmount,
+        
         DateTime? Deadline,
-        [Required] Guid UserId
+        
+        [Required(ErrorMessage = "O usuário é obrigatório")]
+        Guid UserId
     );
 
     // DTO para resposta
@@ -25,7 +35,11 @@ namespace MyWallet.API.DTOs
 
     // DTO para adicionar/remover valor da meta
     public record UpdateGoalAmountDto(
-        [Required] decimal Amount,
-        [Required] bool IsAddition // true = adicionar, false = remover
+        [Required(ErrorMessage = "O valor é obrigatório")]
+        [Range(0.01, 999999999.99, ErrorMessage = "O valor deve estar entre 0.01 e 999.999.999,99")]
+        decimal Amount,
+        
+        [Required(ErrorMessage = "O tipo de operação é obrigatório")]
+        bool IsAddition // true = adicionar, false = remover
     );
 }

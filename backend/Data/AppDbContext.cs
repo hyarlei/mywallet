@@ -14,6 +14,7 @@ namespace MyWallet.API.Data
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<Category> Categories { get; set; } // Não esqueça de criar a classe Category também!
         public DbSet<Goal> Goals { get; set; }
+        public DbSet<CreditCard> CreditCards { get; set; }
 
         // Configurações finas (Fluent API)
         protected override void OnModelCreating(ModelBuilder modelBuilder)

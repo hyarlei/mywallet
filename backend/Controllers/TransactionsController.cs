@@ -56,14 +56,29 @@ namespace MyWallet.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateTransactionDto dto)
         {
+            // Validação adicional de negócio
+            if (dto.Amount <= 0)
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "O valor deve ser maior que zero" } });
+
+            if (dto.Date > DateTime.UtcNow.AddYears(5))
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "Data não pode ser superior a 5 anos no futuro" } });
+
+            if (dto.Date < DateTime.UtcNow.AddYears(-10))
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "Data não pode ser anterior a 10 anos atrás" } });
+
             // Valida se a categoria existe
             var category = await _context.Categories.FindAsync(dto.CategoryId);
-            if (category == null) return BadRequest("Categoria não encontrada.");
+            if (category == null)
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "Categoria não encontrada" } });
+
+            // Valida se a categoria pertence ao usuário
+            if (category.UserId != dto.UserId)
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "Categoria não pertence ao usuário" } });
 
             // Cria a Entidade
             var transaction = new Transaction
             {
-                Description = dto.Description,
+                Description = dto.Description.Trim(),
                 Amount = dto.Amount,
                 Date = dto.Date,
                 Type = dto.Type,
@@ -97,14 +112,34 @@ namespace MyWallet.API.Controllers
         {
             // Busca a transação existente
             var transaction = await _context.Transactions.FindAsync(id);
-            if (transaction == null) return NotFound("Transação não encontrada.");
+            if (transaction == null)
+                return NotFound(new { message = "Transação não encontrada" });
+
+            // Validação adicional de negócio
+            if (dto.Amount <= 0)
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "O valor deve ser maior que zero" } });
+
+            if (dto.Date > DateTime.UtcNow.AddYears(5))
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "Data não pode ser superior a 5 anos no futuro" } });
+
+            if (dto.Date < DateTime.UtcNow.AddYears(-10))
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "Data não pode ser anterior a 10 anos atrás" } });
 
             // Valida se a categoria existe
             var category = await _context.Categories.FindAsync(dto.CategoryId);
-            if (category == null) return BadRequest("Categoria não encontrada.");
+            if (category == null)
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "Categoria não encontrada" } });
+
+            // Valida se a categoria pertence ao usuário
+            if (category.UserId != dto.UserId)
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "Categoria não pertence ao usuário" } });
+
+            // Valida se a transação pertence ao usuário
+            if (transaction.UserId != dto.UserId)
+                return Forbid();
 
             // Atualiza os dados
-            transaction.Description = dto.Description;
+            transaction.Description = dto.Description.Trim();
             transaction.Amount = dto.Amount;
             transaction.Date = dto.Date;
             transaction.Type = dto.Type;

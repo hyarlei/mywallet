@@ -5,12 +5,26 @@ namespace MyWallet.API.DTOs
 {
     // O que o Front manda para CRIAR uma transação
     public record CreateTransactionDto(
-        [Required] string Description,
-        [Required] decimal Amount,
-        [Required] DateTime Date,
-        [Required] TransactionType Type,
-        [Required] Guid CategoryId,
-        [Required] Guid UserId // Temporário: Depois pegaremos do Token de Auth
+        [Required(ErrorMessage = "A descrição é obrigatória")]
+        [StringLength(200, MinimumLength = 3, ErrorMessage = "A descrição deve ter entre 3 e 200 caracteres")]
+        string Description,
+        
+        [Required(ErrorMessage = "O valor é obrigatório")]
+        [Range(0.01, 999999999.99, ErrorMessage = "O valor deve estar entre 0.01 e 999.999.999,99")]
+        decimal Amount,
+        
+        [Required(ErrorMessage = "A data é obrigatória")]
+        DateTime Date,
+        
+        [Required(ErrorMessage = "O tipo é obrigatório")]
+        [EnumDataType(typeof(TransactionType), ErrorMessage = "Tipo de transação inválido")]
+        TransactionType Type,
+        
+        [Required(ErrorMessage = "A categoria é obrigatória")]
+        Guid CategoryId,
+        
+        [Required(ErrorMessage = "O usuário é obrigatório")]
+        Guid UserId // Temporário: Depois pegaremos do Token de Auth
     );
 
     // O que o Back devolve para o Front MOSTRAR na tela

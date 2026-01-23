@@ -26,11 +26,25 @@ const categoryStyles = {
 };
 
 const bankStyles = {
-    nubank: { bg: 'bg-gradient-to-br from-purple-600 to-purple-800' },
-    itau: { bg: 'bg-gradient-to-br from-orange-500 to-orange-600' },
-    bb: { bg: 'bg-gradient-to-br from-yellow-400 to-yellow-600' },
-    inter: { bg: 'bg-gradient-to-br from-orange-400 to-orange-500' },
-    blue: { bg: 'bg-gradient-to-br from-blue-500 to-blue-700' }
+    nubank: { bg: 'bg-[#820AD1]' },
+    sicredi: { bg: 'bg-[#00B44B]' },
+    itau: { bg: 'bg-[#EC7000]' },
+    bb: { bg: 'bg-[#F8D21E] text-blue-900' },
+    santander: { bg: 'bg-[#CC0000]' },
+    bradesco: { bg: 'bg-[#CC092F]' },
+    inter: { bg: 'bg-[#FF7A00]' },
+    c6: { bg: 'bg-black' },
+    blue: { bg: 'bg-blue-600' },
+    green: { bg: 'bg-emerald-600' }
+};
+
+// URLs das logos para ficar igual ao app oficial
+const flagLogos = {
+    visa: 'https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg',
+    master: 'https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg',
+    elo: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Elo_logo.png',
+    hiper: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Hipercard_logo.svg',
+    amex: 'https://upload.wikimedia.org/wikipedia/commons/3/30/American_Express_logo.svg'
 };
 
 // --- ELEMENTOS DOM ---
@@ -61,13 +75,13 @@ let lineChartInstance = null;
 document.addEventListener('DOMContentLoaded', () => {
     popularSeletorMeses();
     verificarTema();
-    
+
     // Inicializa ícones Lucide
-    if(window.lucide) lucide.createIcons();
-    
+    if (window.lucide) lucide.createIcons();
+
     // Inicializar Google Sign-In
     inicializarGoogleSignIn();
-    
+
     // Verificar se já está logado
     const savedToken = localStorage.getItem('authToken');
     const savedUser = localStorage.getItem('currentUser');
@@ -76,13 +90,99 @@ document.addEventListener('DOMContentLoaded', () => {
         currentUser = JSON.parse(savedUser);
         mostrarApp();
     }
+
+    // Adicionar validação em tempo real nos inputs
+    adicionarValidacaoTempoReal();
 });
+
+// Adicionar validação em tempo real
+function adicionarValidacaoTempoReal() {
+    // Validação no campo de descrição
+    const descInputs = ['desc', 'edit-desc'];
+    descInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('blur', function () {
+                const erros = Validacao.validarDescricao(this.value);
+                marcarCampo(this, erros);
+            });
+            input.addEventListener('input', function () {
+                if (this.classList.contains('input-error')) {
+                    const erros = Validacao.validarDescricao(this.value);
+                    if (erros.length === 0) {
+                        this.classList.remove('input-error');
+                        this.classList.add('input-success');
+                    }
+                }
+            });
+        }
+    });
+
+    // Validação no campo de valor
+    const amountInputs = ['amount', 'edit-amount'];
+    amountInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('blur', function () {
+                const valor = limparValorMoeda(this.value);
+                const erros = Validacao.validarValor(valor);
+                marcarCampo(this, erros);
+            });
+            input.addEventListener('input', function () {
+                if (this.classList.contains('input-error')) {
+                    const valor = limparValorMoeda(this.value);
+                    const erros = Validacao.validarValor(valor);
+                    if (erros.length === 0) {
+                        this.classList.remove('input-error');
+                        this.classList.add('input-success');
+                    }
+                }
+            });
+        }
+    });
+
+    // Validação no campo de data
+    const dateInputs = ['date', 'edit-date'];
+    dateInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('blur', function () {
+                const erros = Validacao.validarData(this.value);
+                marcarCampo(this, erros);
+            });
+            input.addEventListener('change', function () {
+                if (this.classList.contains('input-error')) {
+                    const erros = Validacao.validarData(this.value);
+                    if (erros.length === 0) {
+                        this.classList.remove('input-error');
+                        this.classList.add('input-success');
+                    }
+                }
+            });
+        }
+    });
+}
+
+// Marcar campo com erro ou sucesso
+function marcarCampo(input, erros) {
+    input.classList.remove('input-error', 'input-success');
+    if (erros.length > 0) {
+        input.classList.add('input-error');
+        input.title = erros.join(', ');
+    } else if (input.value) {
+        input.classList.add('input-success');
+        input.title = '';
+    }
+}
 
 async function initApp() {
     toggleLoading(true);
     try {
         await carregarCategorias();
         await carregarTransacoes(); // Isso já chama o render e o dashboard
+        await carregarMetas(); // Carregar metas
+        await carregarCartoes(); // Carregar cartões
+        await carregarTodasCategorias(); // Carregar categorias para gerenciamento
     } catch (error) {
         console.error("Erro fatal:", error);
         toggleLoading(false);
@@ -107,7 +207,7 @@ async function carregarCategorias() {
             throw new Error(`Erro na API Categories: ${res.status} ${res.statusText}`);
         }
         const categorias = await res.json();
-        
+
         els.categorySelect.innerHTML = '';
         categorias.forEach(cat => {
             const option = document.createElement('option');
@@ -137,7 +237,7 @@ async function carregarTransacoes() {
         throw new Error(`Erro na API Transactions: ${res.status} ${res.statusText}`);
     }
     const data = await res.json();
-    
+
     // 2. Pega Resumo do Dashboard (Calculado no C#)
     const resDash = await fetch(`${API_URL}/Dashboard`, {
         headers: getFetchHeaders()
@@ -161,20 +261,32 @@ async function carregarTransacoes() {
 
 els.form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const desc = document.getElementById('desc').value;
     const amountStr = document.getElementById('amount').value;
     const amountVal = limparValorMoeda(amountStr);
     const dateVal = document.getElementById('date').value;
     const categoryId = els.categorySelect.value;
-    
+
+    // Validar todos os campos
+    const erros = [
+        ...Validacao.validarDescricao(desc),
+        ...Validacao.validarValor(amountVal),
+        ...Validacao.validarData(dateVal),
+        ...Validacao.validarCategoria(categoryId)
+    ];
+
+    if (!Validacao.mostrarErros(erros)) {
+        return;
+    }
+
     // Lógica para definir Tipo (Income/Expense) baseado na categoria selecionada
     const selectedOption = els.categorySelect.options[els.categorySelect.selectedIndex];
-    let type = 2; // Padrão: Expense
-    if(categoryId.includes('2222')) type = 1; // ID do Freela no nosso seed
+    const categoryType = selectedOption.getAttribute('data-type');
+    const type = categoryType ? parseInt(categoryType) : 2; // 1 = Income, 2 = Expense (padrão)
 
     const payload = {
-        description: desc,
+        description: desc.trim(),
         amount: amountVal,
         date: dateVal,
         type: type,
@@ -195,7 +307,9 @@ els.form.addEventListener('submit', async (e) => {
             document.getElementById('date').valueAsDate = new Date();
             await carregarTransacoes();
         } else {
-            alert("Erro ao salvar no servidor.");
+            const errorData = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+            const errorMsg = errorData.errors ? errorData.errors.join('\n') : errorData.message;
+            alert("Erro ao salvar: " + errorMsg);
         }
     } catch (e) {
         console.error(e);
@@ -207,20 +321,20 @@ els.form.addEventListener('submit', async (e) => {
 
 function aplicarFiltro() {
     const mesSelecionado = els.monthFilter.value;
-    
+
     if (!mesSelecionado) {
         filteredTransactions = allTransactions;
     } else {
         filteredTransactions = allTransactions.filter(t => t.date.startsWith(mesSelecionado));
     }
-    
+
     renderList(filteredTransactions);
     renderCharts(filteredTransactions);
 }
 
 function renderList(transactions) {
     els.listElement.innerHTML = '';
-    
+
     if (transactions.length === 0) {
         els.listElement.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400">Nenhuma transação neste período.</td></tr>';
         return;
@@ -263,17 +377,17 @@ function renderList(transactions) {
         `;
         els.listElement.appendChild(row);
     });
-    
-    if(window.lucide) lucide.createIcons();
+
+    if (window.lucide) lucide.createIcons();
 }
 
 function atualizarCards(dashData) {
     els.displays.income.textContent = formatarMoeda(dashData.totalIncome);
     els.displays.expense.textContent = formatarMoeda(Math.abs(dashData.totalExpense)); // Garante positivo pro display
     els.displays.total.textContent = formatarMoeda(dashData.balance);
-    
+
     // Cor do saldo
-    if(dashData.balance >= 0) {
+    if (dashData.balance >= 0) {
         els.displays.total.parentElement.classList.replace('bg-red-600', 'bg-blue-600');
     } else {
         els.displays.total.parentElement.classList.replace('bg-blue-600', 'bg-red-600');
@@ -289,7 +403,7 @@ function renderCharts(transactions) {
     // Atenção: O Chart.js precisa de números puros, sem formatação
     const income = transactions.filter(t => t.type === "Income").reduce((acc, t) => acc + t.amount, 0);
     const expense = Math.abs(transactions.filter(t => t.type === "Expense").reduce((acc, t) => acc + t.amount, 0));
-    
+
     const ctxDonut = document.getElementById('expenseChart');
     if (donutChartInstance) donutChartInstance.destroy();
 
@@ -299,7 +413,7 @@ function renderCharts(transactions) {
     } else {
         document.getElementById('no-data-msg').classList.add('hidden');
         ctxDonut.style.display = 'block';
-        
+
         donutChartInstance = new Chart(ctxDonut, {
             type: 'doughnut',
             data: {
@@ -322,7 +436,7 @@ function renderCharts(transactions) {
                             let sum = 0;
                             let dataArr = ctx.chart.data.datasets[0].data;
                             dataArr.map(data => { sum += data; });
-                            let percentage = (value*100 / sum).toFixed(0)+"%";
+                            let percentage = (value * 100 / sum).toFixed(0) + "%";
                             return percentage;
                         }
                     }
@@ -334,17 +448,17 @@ function renderCharts(transactions) {
     // Gráfico de Linha (Evolução Diária) - Simplificado
     const ctxLine = document.getElementById('lineChart');
     if (lineChartInstance) lineChartInstance.destroy();
-    
+
     // Agrupa gastos por dia
     const gastosPorDia = {};
     transactions.forEach(t => {
-        if(t.type === "Expense") {
+        if (t.type === "Expense") {
             const dia = new Date(t.date).getDate();
             gastosPorDia[dia] = (gastosPorDia[dia] || 0) + Math.abs(t.amount);
         }
     });
 
-    const labels = Object.keys(gastosPorDia).sort((a,b) => a-b);
+    const labels = Object.keys(gastosPorDia).sort((a, b) => a - b);
     const data = labels.map(dia => gastosPorDia[dia]);
 
     lineChartInstance = new Chart(ctxLine, {
@@ -375,9 +489,130 @@ function renderCharts(transactions) {
 // --- UTILITÁRIOS ---
 
 function toggleLoading(show) {
-    if(show) els.loadingScreen.classList.remove('opacity-0', 'pointer-events-none');
+    if (show) els.loadingScreen.classList.remove('opacity-0', 'pointer-events-none');
     else els.loadingScreen.classList.add('opacity-0', 'pointer-events-none');
 }
+
+// --- FUNÇÕES DE VALIDAÇÃO ---
+const Validacao = {
+    // Validar descrição
+    validarDescricao(descricao) {
+        const errors = [];
+        if (!descricao || descricao.trim().length === 0) {
+            errors.push('A descrição é obrigatória');
+        } else if (descricao.trim().length < 3) {
+            errors.push('A descrição deve ter no mínimo 3 caracteres');
+        } else if (descricao.length > 200) {
+            errors.push('A descrição deve ter no máximo 200 caracteres');
+        }
+        return errors;
+    },
+
+    // Validar valor monetário
+    validarValor(valor) {
+        const errors = [];
+        const valorNum = typeof valor === 'string' ? limparValorMoeda(valor) : valor;
+
+        if (!valorNum || valorNum <= 0) {
+            errors.push('O valor deve ser maior que zero');
+        } else if (valorNum > 999999999.99) {
+            errors.push('O valor não pode ser maior que 999.999.999,99');
+        } else if (isNaN(valorNum)) {
+            errors.push('Valor inválido');
+        }
+        return errors;
+    },
+
+    // Validar data
+    validarData(data) {
+        const errors = [];
+        if (!data) {
+            errors.push('A data é obrigatória');
+        } else {
+            const dataObj = new Date(data);
+            const hoje = new Date();
+            const limitePassado = new Date();
+            limitePassado.setFullYear(hoje.getFullYear() - 10);
+            const limiteFuturo = new Date();
+            limiteFuturo.setFullYear(hoje.getFullYear() + 5);
+
+            if (isNaN(dataObj.getTime())) {
+                errors.push('Data inválida');
+            } else if (dataObj < limitePassado) {
+                errors.push('Data não pode ser anterior a 10 anos atrás');
+            } else if (dataObj > limiteFuturo) {
+                errors.push('Data não pode ser superior a 5 anos no futuro');
+            }
+        }
+        return errors;
+    },
+
+    // Validar categoria
+    validarCategoria(categoriaId) {
+        const errors = [];
+        if (!categoriaId || categoriaId === '') {
+            errors.push('Selecione uma categoria');
+        }
+        return errors;
+    },
+
+    // Validar nome de categoria
+    validarNomeCategoria(nome) {
+        const errors = [];
+        if (!nome || nome.trim().length === 0) {
+            errors.push('O nome da categoria é obrigatório');
+        } else if (nome.trim().length < 2) {
+            errors.push('O nome deve ter no mínimo 2 caracteres');
+        } else if (nome.length > 50) {
+            errors.push('O nome deve ter no máximo 50 caracteres');
+        }
+        return errors;
+    },
+
+    // Validar cor hexadecimal
+    validarCor(cor) {
+        const errors = [];
+        const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+        if (!cor) {
+            errors.push('A cor é obrigatória');
+        } else if (!hexRegex.test(cor)) {
+            errors.push('Formato de cor inválido. Use formato hexadecimal (#FFFFFF)');
+        }
+        return errors;
+    },
+
+    // Validar meta
+    validarMeta(titulo, valorAlvo) {
+        const errors = [];
+
+        if (!titulo || titulo.trim().length === 0) {
+            errors.push('O título da meta é obrigatório');
+        } else if (titulo.trim().length < 3) {
+            errors.push('O título deve ter no mínimo 3 caracteres');
+        } else if (titulo.length > 100) {
+            errors.push('O título deve ter no máximo 100 caracteres');
+        }
+
+        const valorNum = typeof valorAlvo === 'string' ? limparValorMoeda(valorAlvo) : valorAlvo;
+        if (!valorNum || valorNum <= 0) {
+            errors.push('O valor alvo deve ser maior que zero');
+        } else if (valorNum > 999999999.99) {
+            errors.push('O valor alvo não pode ser maior que 999.999.999,99');
+        }
+
+        return errors;
+    },
+
+    // Mostrar erros de validação
+    mostrarErros(errors) {
+        if (errors.length > 0) {
+            const mensagem = errors.join('\n');
+            alert('Erro de validação:\n\n' + mensagem);
+            return false;
+        }
+        return true;
+    }
+};
 
 function formatarMoeda(val) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -407,25 +642,98 @@ function showToast(msg) {
     toast.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i> ${msg}`;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
-    if(window.lucide) lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
+}
+
+// Exportar transações para CSV
+function exportarCSV() {
+    if (!filteredTransactions || filteredTransactions.length === 0) {
+        alert('Não há transações para exportar');
+        return;
+    }
+
+    // Preparar dados para CSV
+    const csvData = [];
+    
+    // Cabeçalho
+    csvData.push(['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor', 'Status']);
+    
+    // Dados das transações filtradas
+    filteredTransactions.forEach(t => {
+        const data = formatarData(t.date);
+        const descricao = t.description;
+        const categoria = t.categoryName;
+        const tipo = t.type === 'Income' ? 'Entrada' : 'Saída';
+        const valor = t.amount.toFixed(2).replace('.', ',');
+        const status = t.isPaid ? 'Pago' : 'Pendente';
+        
+        csvData.push([data, descricao, categoria, tipo, valor, status]);
+    });
+    
+    // Converter para string CSV
+    const csvContent = csvData.map(row => 
+        row.map(cell => {
+            // Escapar aspas e adicionar aspas se tiver vírgula ou quebra de linha
+            const cellStr = String(cell || '');
+            if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                return '"' + cellStr.replace(/"/g, '""') + '"';
+            }
+            return cellStr;
+        }).join(',')
+    ).join('\n');
+    
+    // Adicionar BOM para UTF-8 (para Excel abrir corretamente)
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    // Criar link de download
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    // Nome do arquivo com data atual
+    const hoje = new Date();
+    const dataFormatada = hoje.toISOString().split('T')[0];
+    const mesSelecionado = els.monthFilter.value;
+    const nomeArquivo = `mywallet_transacoes_${mesSelecionado || dataFormatada}.csv`;
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', nomeArquivo);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast(`${filteredTransactions.length} transações exportadas com sucesso!`);
 }
 
 function popularSeletorMeses() {
     const hoje = new Date();
     els.monthFilter.innerHTML = '';
-    
-    // Gera últimos 12 meses
-    for(let i=0; i<12; i++) {
-        const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+
+    // Gera meses de 12 meses atrás até 12 meses à frente (25 meses no total)
+    const meses = [];
+    for (let i = -12; i <= 12; i++) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
         const valor = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         const texto = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
-        
-        const option = document.createElement('option');
-        option.value = valor;
-        option.textContent = texto;
-        els.monthFilter.appendChild(option);
+        meses.push({ valor, texto, offset: i });
     }
-    
+
+    // Adiciona opção "Todos"
+    const optionTodos = document.createElement('option');
+    optionTodos.value = '';
+    optionTodos.textContent = 'Todos os períodos';
+    els.monthFilter.appendChild(optionTodos);
+
+    // Adiciona os meses em ordem cronológica (mais antigo primeiro)
+    meses.forEach(mes => {
+        const option = document.createElement('option');
+        option.value = mes.valor;
+        option.textContent = mes.texto;
+        els.monthFilter.appendChild(option);
+    });
+
     // Seleciona o mês atual
     els.monthFilter.value = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
     els.monthFilter.addEventListener('change', aplicarFiltro);
@@ -434,15 +742,15 @@ function popularSeletorMeses() {
 function verificarTema() {
     const isDark = localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
     if (isDark) document.documentElement.classList.add('dark');
-    
+
     const themeToggle = document.getElementById('theme-toggle');
-    if(themeToggle) {
+    if (themeToggle) {
         themeToggle.addEventListener('click', () => {
             document.documentElement.classList.toggle('dark');
             const isDarkMode = document.documentElement.classList.contains('dark');
             localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
             // Recarrega gráficos para ajustar cor da fonte
-            if(allTransactions.length > 0) renderCharts(filteredTransactions);
+            if (allTransactions.length > 0) renderCharts(filteredTransactions);
         });
     }
 }
@@ -486,8 +794,19 @@ document.getElementById('edit-form').addEventListener('submit', async (e) => {
     const amountVal = limparValorMoeda(amountStr);
     const dateVal = document.getElementById('edit-date').value;
 
+    // Validar todos os campos
+    const erros = [
+        ...Validacao.validarDescricao(desc),
+        ...Validacao.validarValor(amountVal),
+        ...Validacao.validarData(dateVal)
+    ];
+
+    if (!Validacao.mostrarErros(erros)) {
+        return;
+    }
+
     const payload = {
-        description: desc,
+        description: desc.trim(),
         amount: amountVal,
         date: dateVal,
         type: transacaoEditando.type === "Income" ? 1 : 2,
@@ -507,7 +826,9 @@ document.getElementById('edit-form').addEventListener('submit', async (e) => {
             fecharModal();
             await carregarTransacoes();
         } else {
-            alert("Erro ao atualizar no servidor.");
+            const errorData = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+            const errorMsg = errorData.errors ? errorData.errors.join('\n') : errorData.message;
+            alert("Erro ao atualizar: " + errorMsg);
         }
     } catch (e) {
         console.error(e);
@@ -540,7 +861,7 @@ window.deletarTransacao = async (id) => {
 
 // --- AUTENTICAÇÃO GOOGLE ---
 function inicializarGoogleSignIn() {
-    if (!GOOGLE_CLIENT_ID || 
+    if (!GOOGLE_CLIENT_ID ||
         GOOGLE_CLIENT_ID === 'SEU_GOOGLE_CLIENT_ID.apps.googleusercontent.com' ||
         GOOGLE_CLIENT_ID.startsWith('COLOQUE_SEU')) {
         document.getElementById("google-signin-button").innerHTML = `
@@ -560,17 +881,17 @@ function inicializarGoogleSignIn() {
         `;
         return;
     }
-    
+
     try {
         google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
             callback: handleGoogleCallback
         });
-        
+
         google.accounts.id.renderButton(
             document.getElementById("google-signin-button"),
-            { 
-                theme: "outline", 
+            {
+                theme: "outline",
                 size: "large",
                 width: 400,
                 text: "signin_with",
@@ -585,20 +906,24 @@ function inicializarGoogleSignIn() {
 
 async function handleGoogleCallback(response) {
     toggleLoading(true);
-    
+
     try {
         const res = await fetch(`${API_URL}/Auth/google`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify({ idToken: response.credential })
         });
 
         if (!res.ok) {
-            throw new Error('Falha na autenticação');
+            const errorData = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+            throw new Error(errorData.message || 'Falha na autenticação');
         }
 
         const data = await res.json();
-        
+
         // Salvar token e dados do usuário
         authToken = data.token;
         currentUser = {
@@ -606,14 +931,14 @@ async function handleGoogleCallback(response) {
             email: data.email,
             name: data.name
         };
-        
+
         localStorage.setItem('authToken', authToken);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        
+
         mostrarApp();
     } catch (error) {
         console.error('Erro no login:', error);
-        alert('Erro ao fazer login. Tente novamente.');
+        alert('Erro ao fazer login: ' + error.message);
     } finally {
         toggleLoading(false);
     }
@@ -632,10 +957,10 @@ function logout() {
     currentUser = null;
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
-    
+
     els.appScreen.classList.add('hidden');
     els.loginScreen.classList.remove('hidden');
-    
+
     // Recarregar para limpar estado
     window.location.reload();
 }
@@ -646,4 +971,867 @@ function getFetchHeaders() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
     };
+}
+
+// --- MÓDULO DE METAS/GOALS ---
+
+let allGoals = [];
+
+// Carregar metas do backend
+async function carregarMetas() {
+    try {
+        const res = await fetch(`${API_URL}/Goals?userId=${currentUser.userId}`, {
+            headers: getFetchHeaders()
+        });
+
+        if (!res.ok) {
+            if (res.status === 401) {
+                logout();
+                return;
+            }
+            throw new Error(`Erro ao carregar metas: ${res.status}`);
+        }
+
+        allGoals = await res.json();
+        renderizarMetas();
+    } catch (error) {
+        console.error('Erro ao carregar metas:', error);
+    }
+}
+
+// Renderizar metas na tela
+function renderizarMetas() {
+    const container = document.getElementById('goals-container');
+
+    if (!allGoals || allGoals.length === 0) {
+        container.innerHTML = `
+            <div class="col-span-full text-center py-12 text-gray-400">
+                <i data-lucide="target" class="w-16 h-16 mx-auto mb-3 opacity-30"></i>
+                <p class="text-sm">Nenhuma meta criada ainda</p>
+                <p class="text-xs mt-1">Crie sua primeira meta para começar a economizar!</p>
+            </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+    }
+
+    container.innerHTML = allGoals.map(goal => {
+        const progress = goal.progress || 0;
+        const progressColor = progress >= 100 ? 'bg-green-500' : progress >= 75 ? 'bg-blue-500' : progress >= 50 ? 'bg-yellow-500' : 'bg-gray-400';
+        const deadlineText = goal.deadline ? `Prazo: ${formatarData(goal.deadline)}` : 'Sem prazo definido';
+        const isCompleted = progress >= 100;
+
+        return `
+            <div class="bg-white dark:bg-darkcard p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex-1">
+                        <h4 class="font-bold text-gray-900 dark:text-white mb-1">${goal.title}</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${deadlineText}</p>
+                    </div>
+                    <div class="flex gap-1">
+                        <button onclick="abrirModalEditarMeta('${goal.id}')" class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition" title="Editar">
+                            <i data-lucide="edit-2" class="w-4 h-4 text-gray-600 dark:text-gray-400"></i>
+                        </button>
+                        <button onclick="deletarMeta('${goal.id}')" class="p-1.5 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition" title="Deletar">
+                            <i data-lucide="trash-2" class="w-4 h-4 text-red-600"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-2 mb-4">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600 dark:text-gray-400">Progresso</span>
+                        <span class="font-bold ${isCompleted ? 'text-green-600' : 'text-indigo-600'}">${progress.toFixed(1)}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                        <div class="${progressColor} h-2.5 rounded-full transition-all duration-500" style="width: ${Math.min(progress, 100)}%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                        <span>${formatarMoeda(goal.currentAmount)}</span>
+                        <span>${formatarMoeda(goal.targetAmount)}</span>
+                    </div>
+                </div>
+
+                ${isCompleted ? `
+                    <div class="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs py-2 px-3 rounded-lg flex items-center gap-2 mb-3">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i>
+                        Meta concluída! 🎉
+                    </div>
+                ` : ''}
+
+                <button onclick="abrirModalValorMeta('${goal.id}', '${goal.title}')" 
+                    class="w-full py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 text-sm font-medium">
+                    <i data-lucide="coins" class="w-4 h-4"></i>
+                    Atualizar Valor
+                </button>
+            </div>
+        `;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons();
+}
+
+// Abrir modal para nova meta
+function abrirModalNovaMeta() {
+    document.getElementById('goal-modal-title').textContent = 'Nova Meta';
+    document.getElementById('goal-form').reset();
+    document.getElementById('goal-id').value = '';
+    document.getElementById('goal-modal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+// Abrir modal para editar meta
+async function abrirModalEditarMeta(goalId) {
+    try {
+        const res = await fetch(`${API_URL}/Goals/${goalId}`, {
+            headers: getFetchHeaders()
+        });
+
+        if (!res.ok) throw new Error('Erro ao carregar meta');
+
+        const goal = await res.json();
+
+        document.getElementById('goal-modal-title').textContent = 'Editar Meta';
+        document.getElementById('goal-id').value = goal.id;
+        document.getElementById('goal-title').value = goal.title;
+        document.getElementById('goal-target').value = formatarMoeda(goal.targetAmount);
+        document.getElementById('goal-current').value = formatarMoeda(goal.currentAmount);
+        document.getElementById('goal-deadline').value = goal.deadline ? goal.deadline.split('T')[0] : '';
+
+        document.getElementById('goal-modal').classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    } catch (error) {
+        console.error('Erro ao carregar meta:', error);
+        alert('Erro ao carregar meta');
+    }
+}
+
+// Fechar modal de meta
+function fecharModalMeta() {
+    document.getElementById('goal-modal').classList.add('hidden');
+}
+
+// Salvar meta (criar ou editar)
+document.getElementById('goal-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const goalId = document.getElementById('goal-id').value;
+    const title = document.getElementById('goal-title').value;
+    const targetStr = document.getElementById('goal-target').value;
+    const currentStr = document.getElementById('goal-current').value || 'R$ 0,00';
+    const deadline = document.getElementById('goal-deadline').value || null;
+
+    const targetAmount = limparValorMoeda(targetStr);
+    const currentAmount = limparValorMoeda(currentStr);
+
+    // Validar
+    const erros = Validacao.validarMeta(title, targetAmount);
+    if (!Validacao.mostrarErros(erros)) {
+        return;
+    }
+
+    const payload = {
+        title: title.trim(),
+        targetAmount: targetAmount,
+        currentAmount: currentAmount,
+        deadline: deadline,
+        userId: currentUser.userId
+    };
+
+    try {
+        const url = goalId ? `${API_URL}/Goals/${goalId}` : `${API_URL}/Goals`;
+        const method = goalId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: getFetchHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+            const errorMsg = errorData.errors ? errorData.errors.join('\n') : errorData.message;
+            alert('Erro ao salvar meta: ' + errorMsg);
+            return;
+        }
+
+        showToast(goalId ? 'Meta atualizada com sucesso!' : 'Meta criada com sucesso!');
+        fecharModalMeta();
+        await carregarMetas();
+    } catch (error) {
+        console.error('Erro ao salvar meta:', error);
+        alert('Erro de conexão');
+    }
+});
+
+// Abrir modal para atualizar valor da meta
+function abrirModalValorMeta(goalId, goalTitle) {
+    document.getElementById('goal-amount-id').value = goalId;
+    document.getElementById('goal-amount-title').textContent = goalTitle;
+    document.getElementById('goal-amount-value').value = '';
+    document.getElementById('goal-amount-modal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+// Fechar modal de valor
+function fecharModalValorMeta() {
+    document.getElementById('goal-amount-modal').classList.add('hidden');
+}
+
+// Atualizar valor da meta (adicionar ou remover)
+async function atualizarValorMeta(isAddition) {
+    const goalId = document.getElementById('goal-amount-id').value;
+    const amountStr = document.getElementById('goal-amount-value').value;
+    const amount = limparValorMoeda(amountStr);
+
+    // Validar
+    const erros = Validacao.validarValor(amount);
+    if (!Validacao.mostrarErros(erros)) {
+        return;
+    }
+
+    const payload = {
+        amount: amount,
+        isAddition: isAddition
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/Goals/${goalId}/amount`, {
+            method: 'PATCH',
+            headers: getFetchHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+            const errorMsg = errorData.errors ? errorData.errors.join('\n') : errorData.message;
+            alert('Erro ao atualizar valor: ' + errorMsg);
+            return;
+        }
+
+        showToast(isAddition ? 'Valor adicionado com sucesso!' : 'Valor removido com sucesso!');
+        fecharModalValorMeta();
+        await carregarMetas();
+    } catch (error) {
+        console.error('Erro ao atualizar valor:', error);
+        alert('Erro de conexão');
+    }
+}
+
+// Deletar meta
+async function deletarMeta(goalId) {
+    if (!confirm('Tem certeza que deseja deletar esta meta?')) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/Goals/${goalId}`, {
+            method: 'DELETE',
+            headers: getFetchHeaders()
+        });
+
+        if (!res.ok) {
+            alert('Erro ao deletar meta');
+            return;
+        }
+
+        showToast('Meta deletada com sucesso!');
+        await carregarMetas();
+    } catch (error) {
+        console.error('Erro ao deletar meta:', error);
+        alert('Erro de conexão');
+    }
+}
+
+// --- MÓDULO DE CARTÕES DE CRÉDITO ---
+
+let allCards = [];
+
+// Carregar cartões do backend
+async function carregarCartoes() {
+    try {
+        const res = await fetch(`${API_URL}/CreditCards?userId=${currentUser.userId}`, {
+            headers: getFetchHeaders()
+        });
+
+        if (!res.ok) {
+            if (res.status === 401) {
+                logout();
+                return;
+            }
+            throw new Error(`Erro ao carregar cartões: ${res.status}`);
+        }
+
+        allCards = await res.json();
+        renderizarCartoes();
+    } catch (error) {
+        console.error('Erro ao carregar cartões:', error);
+    }
+}
+
+// Renderizar cartões na tela
+function renderizarCartoes() {
+    const container = document.getElementById('cards-container');
+
+    // Se não tiver cartões
+    if (!allCards || allCards.length === 0) {
+        container.innerHTML = `
+            <div class="w-full text-center py-8 text-gray-400">
+                <p class="text-sm mb-2">Nenhum cartão cadastrado</p>
+                <button onclick="abrirModalNovoCartao()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm">
+                    + Adicionar Cartão
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = ''; // Limpa antes de renderizar
+
+    // Renderiza os cartões
+    allCards.forEach(card => {
+        const style = bankStyles[card.bank] || bankStyles['blue'];
+        // Pega a logo da bandeira ou usa Visa como padrão se falhar
+        const flagUrl = flagLogos[card.flag] || flagLogos['visa'];
+
+        // Formata o valor (usa currentBill que vem do seu backend)
+        const billValue = (card.currentBill || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+        const cardHtml = `
+            <div class="relative min-w-[300px] h-[170px] ${style.bg} text-white rounded-2xl p-6 shadow-lg flex flex-col justify-between overflow-hidden transition-transform hover:-translate-y-1 group">
+                
+                <div class="absolute -top-12 -right-12 w-40 h-40 bg-white opacity-10 rounded-full pointer-events-none"></div>
+
+                <div class="flex justify-between items-start z-10">
+                    <span class="font-bold text-lg tracking-wide drop-shadow-md">${card.name}</span>
+                    <div class="flex items-center gap-3">
+                        <button onclick="abrirModalEditarCartao('${card.id}')" class="opacity-60 hover:opacity-100 transition cursor-pointer" title="Editar">
+                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                        </button>
+                        <i data-lucide="nfc" class="w-6 h-6 opacity-40"></i>
+                    </div>
+                </div>
+
+                <div class="z-10 mt-1">
+                    <p class="text-[10px] uppercase font-bold opacity-80 mb-0.5">Fatura Atual</p>
+                    <p class="text-2xl font-bold tracking-tight text-white drop-shadow-sm">R$ ${billValue}</p>
+                </div>
+
+                <div class="flex justify-between items-end z-10">
+                    <div class="text-sm font-medium tracking-widest opacity-90 font-mono">
+                        **** ${card.last4Digits} </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <button onclick="deletarCartao('${card.id}')" class="opacity-60 hover:opacity-100 hover:text-red-200 transition cursor-pointer" title="Excluir">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                        <img src="${flagUrl}" class="h-6 opacity-90 brightness-200 contrast-200 drop-shadow-md" alt="Bandeira">
+                    </div>
+                </div>
+            </div>
+        `;
+        container.innerHTML += cardHtml;
+    });
+
+    // Botão de "Novo Cartão" ao final da lista
+    const addBtnHtml = `
+        <button onclick="abrirModalNovoCartao()" class="min-w-[100px] h-[170px] bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+            <i data-lucide="plus" class="w-8 h-8 mb-2"></i>
+            <span class="text-xs font-medium">Novo</span>
+        </button>
+    `;
+    container.innerHTML += addBtnHtml;
+
+    if (window.lucide) lucide.createIcons();
+}
+
+// Abrir modal para novo cartão
+function abrirModalNovoCartao() {
+    document.getElementById('card-form').reset();
+    document.getElementById('card-modal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+// Abrir modal para editar cartão
+async function abrirModalEditarCartao(cardId) {
+    try {
+        const res = await fetch(`${API_URL}/CreditCards/${cardId}`, {
+            headers: getFetchHeaders()
+        });
+
+        if (!res.ok) throw new Error('Erro ao carregar cartão');
+
+        const card = await res.json();
+
+        // Preencher formulário de edição
+        document.getElementById('edit-card-id').value = card.id;
+        document.getElementById('edit-card-name').value = card.name;
+        document.getElementById('edit-card-bill').value = formatarMoeda(card.currentBill);
+
+        document.getElementById('edit-card-modal').classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    } catch (error) {
+        console.error('Erro ao carregar cartão:', error);
+        alert('Erro ao carregar cartão');
+    }
+}
+
+// Fechar modal de cartão
+function fecharModalCartao() {
+    document.getElementById('card-modal').classList.add('hidden');
+}
+
+// Fechar modal de edição de cartão
+function fecharModalEdicaoCartao() {
+    document.getElementById('edit-card-modal').classList.add('hidden');
+}
+
+// Criar novo cartão
+document.getElementById('card-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('card-name').value;
+    const bank = document.getElementById('card-bank').value;
+    const flag = document.getElementById('card-flag').value;
+    const last4 = document.getElementById('card-last4').value;
+    const billStr = document.getElementById('card-bill').value;
+    const bill = limparValorMoeda(billStr);
+
+    // Validações básicas
+    if (!name || name.trim().length < 2) {
+        alert('O nome do cartão deve ter no mínimo 2 caracteres');
+        return;
+    }
+
+    if (last4.length !== 4 || !/^\d{4}$/.test(last4)) {
+        alert('Os últimos 4 dígitos devem conter exatamente 4 números');
+        return;
+    }
+
+    if (bill < 0) {
+        alert('O valor da fatura não pode ser negativo');
+        return;
+    }
+
+    const payload = {
+        name: name.trim(),
+        bank: bank,
+        flag: flag,
+        last4Digits: last4,
+        currentBill: bill,
+        creditLimit: null,
+        dueDay: null,
+        userId: currentUser.userId
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/CreditCards`, {
+            method: 'POST',
+            headers: getFetchHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+            const errorMsg = errorData.errors ? errorData.errors.join('\n') : errorData.message;
+            alert('Erro ao criar cartão: ' + errorMsg);
+            return;
+        }
+
+        showToast('Cartão criado com sucesso!');
+        fecharModalCartao();
+        await carregarCartoes();
+    } catch (error) {
+        console.error('Erro ao criar cartão:', error);
+        alert('Erro de conexão');
+    }
+});
+
+// Atualizar cartão (edição)
+document.getElementById('edit-card-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const cardId = document.getElementById('edit-card-id').value;
+    const name = document.getElementById('edit-card-name').value;
+    const billStr = document.getElementById('edit-card-bill').value;
+    const bill = limparValorMoeda(billStr);
+
+    // Buscar o cartão original para manter os outros dados
+    const originalCard = allCards.find(c => c.id === cardId);
+    if (!originalCard) {
+        alert('Cartão não encontrado');
+        return;
+    }
+
+    const payload = {
+        name: name.trim(),
+        bank: originalCard.bank,
+        flag: originalCard.flag,
+        last4Digits: originalCard.last4Digits,
+        currentBill: bill,
+        creditLimit: originalCard.creditLimit,
+        dueDay: originalCard.dueDay,
+        userId: currentUser.userId
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/CreditCards/${cardId}`, {
+            method: 'PUT',
+            headers: getFetchHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+            const errorMsg = errorData.errors ? errorData.errors.join('\n') : errorData.message;
+            alert('Erro ao atualizar cartão: ' + errorMsg);
+            return;
+        }
+
+        showToast('Cartão atualizado com sucesso!');
+        fecharModalEdicaoCartao();
+        await carregarCartoes();
+    } catch (error) {
+        console.error('Erro ao atualizar cartão:', error);
+        alert('Erro de conexão');
+    }
+});
+
+// Abrir modal para atualizar fatura
+function abrirModalAtualizarFatura(cardId, cardName) {
+    // Reutilizar o modal de edição de forma simplificada
+    const card = allCards.find(c => c.id === cardId);
+    if (!card) return;
+
+    document.getElementById('edit-card-id').value = card.id;
+    document.getElementById('edit-card-name').value = card.name;
+    document.getElementById('edit-card-bill').value = formatarMoeda(card.currentBill);
+
+    document.getElementById('edit-card-modal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+// Deletar cartão
+async function deletarCartao(cardId) {
+    if (!confirm('Tem certeza que deseja deletar este cartão?')) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/CreditCards/${cardId}`, {
+            method: 'DELETE',
+            headers: getFetchHeaders()
+        });
+
+        if (!res.ok) {
+            alert('Erro ao deletar cartão');
+            return;
+        }
+
+        showToast('Cartão deletado com sucesso!');
+        await carregarCartoes();
+    } catch (error) {
+        console.error('Erro ao deletar cartão:', error);
+        alert('Erro de conexão');
+    }
+}// ============================================
+// GERENCIAMENTO DE CATEGORIAS
+// ============================================
+
+let allCategories = [];
+
+async function carregarTodasCategorias() {
+    try {
+        const res = await fetch(`${API_URL}/Categories`, {
+            headers: getFetchHeaders()
+        });
+        if (!res.ok) {
+            throw new Error('Erro ao carregar categorias');
+        }
+        allCategories = await res.json();
+        renderizarCategorias();
+    } catch (error) {
+        console.error('Erro ao carregar categorias:', error);
+    }
+}
+
+function renderizarCategorias() {
+    const container = document.getElementById('categories-container');
+    if (!container) return;
+
+    if (allCategories.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center col-span-full">Nenhuma categoria cadastrada</p>';
+        return;
+    }
+
+    container.innerHTML = allCategories.map(cat => {
+        const typeLabel = cat.type === 1 ? 'Receita' : 'Despesa';
+        const typeColor = cat.type === 1 ? 'text-green-600' : 'text-red-600';
+        return `
+            <div class="bg-white dark:bg-darkcard p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col gap-3 hover:shadow-md transition">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white" style="background-color: ${cat.color}">
+                        <i data-lucide="${cat.icon || 'tag'}" class="w-6 h-6"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-gray-900 dark:text-white">${cat.name}</h4>
+                        <p class="text-xs ${typeColor}">${typeLabel}</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="abrirModalEditarCategoria('${cat.id}')" class="flex-1 px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-1">
+                        <i data-lucide="pencil" class="w-4 h-4"></i> Editar
+                    </button>
+                    <button onclick="deletarCategoria('${cat.id}')" class="px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition flex items-center justify-center">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    lucide.createIcons();
+}
+
+function abrirModalNovaCategoria() {
+    document.getElementById('category-modal').classList.remove('hidden');
+    document.getElementById('category-form').reset();
+    document.getElementById('cat-color').value = '';
+    document.getElementById('cat-icon').value = '';
+    
+    // Limpar seleções
+    document.querySelectorAll('.color-btn').forEach(btn => {
+        btn.classList.remove('border-indigo-600');
+        btn.classList.add('border-transparent');
+    });
+    document.querySelectorAll('.icon-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-200', 'dark:bg-indigo-800');
+    });
+    
+    lucide.createIcons();
+}
+
+function fecharModalCategoria() {
+    document.getElementById('category-modal').classList.add('hidden');
+}
+
+function abrirModalEditarCategoria(catId) {
+    const categoria = allCategories.find(c => c.id === catId);
+    if (!categoria) return;
+
+    document.getElementById('edit-category-modal').classList.remove('hidden');
+    document.getElementById('edit-cat-id').value = categoria.id;
+    document.getElementById('edit-cat-name').value = categoria.name;
+    document.getElementById('edit-cat-type').value = categoria.type;
+    document.getElementById('edit-cat-color').value = categoria.color;
+    document.getElementById('edit-cat-icon').value = categoria.icon || '';
+
+    // Marcar cor selecionada
+    document.querySelectorAll('.edit-color-btn').forEach(btn => {
+        if (btn.dataset.color === categoria.color) {
+            btn.classList.remove('border-transparent');
+            btn.classList.add('border-indigo-600');
+        } else {
+            btn.classList.add('border-transparent');
+            btn.classList.remove('border-indigo-600');
+        }
+    });
+
+    // Marcar ícone selecionado
+    document.querySelectorAll('.edit-icon-btn').forEach(btn => {
+        if (btn.dataset.icon === categoria.icon) {
+            btn.classList.add('bg-indigo-200', 'dark:bg-indigo-800');
+        } else {
+            btn.classList.remove('bg-indigo-200', 'dark:bg-indigo-800');
+        }
+    });
+
+    lucide.createIcons();
+}
+
+function fecharModalEdicaoCategoria() {
+    document.getElementById('edit-category-modal').classList.add('hidden');
+}
+
+// Seletores de cor e ícone para CRIAR categoria
+document.querySelectorAll('.color-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const color = btn.dataset.color;
+        document.getElementById('cat-color').value = color;
+        
+        // Atualizar visual
+        document.querySelectorAll('.color-btn').forEach(b => {
+            b.classList.remove('border-indigo-600');
+            b.classList.add('border-transparent');
+        });
+        btn.classList.remove('border-transparent');
+        btn.classList.add('border-indigo-600');
+    });
+});
+
+document.querySelectorAll('.icon-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const icon = btn.dataset.icon;
+        document.getElementById('cat-icon').value = icon;
+        
+        // Atualizar visual
+        document.querySelectorAll('.icon-btn').forEach(b => {
+            b.classList.remove('bg-indigo-200', 'dark:bg-indigo-800');
+        });
+        btn.classList.add('bg-indigo-200', 'dark:bg-indigo-800');
+    });
+});
+
+// Seletores de cor e ícone para EDITAR categoria
+document.querySelectorAll('.edit-color-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const color = btn.dataset.color;
+        document.getElementById('edit-cat-color').value = color;
+        
+        // Atualizar visual
+        document.querySelectorAll('.edit-color-btn').forEach(b => {
+            b.classList.remove('border-indigo-600');
+            b.classList.add('border-transparent');
+        });
+        btn.classList.remove('border-transparent');
+        btn.classList.add('border-indigo-600');
+    });
+});
+
+document.querySelectorAll('.edit-icon-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const icon = btn.dataset.icon;
+        document.getElementById('edit-cat-icon').value = icon;
+        
+        // Atualizar visual
+        document.querySelectorAll('.edit-icon-btn').forEach(b => {
+            b.classList.remove('bg-indigo-200', 'dark:bg-indigo-800');
+        });
+        btn.classList.add('bg-indigo-200', 'dark:bg-indigo-800');
+    });
+});
+
+// Criar categoria
+document.getElementById('category-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('cat-name').value.trim();
+    const type = parseInt(document.getElementById('cat-type').value);
+    const color = document.getElementById('cat-color').value;
+    const icon = document.getElementById('cat-icon').value;
+
+    if (!name || !color || !icon) {
+        alert('Preencha todos os campos (nome, cor e ícone)');
+        return;
+    }
+
+    const payload = {
+        name,
+        type,
+        color,
+        icon,
+        userId: currentUser.userId
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/Categories`, {
+            method: 'POST',
+            headers: getFetchHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+            const errorMsg = errorData.errors ? errorData.errors.join('\n') : errorData.message;
+            alert('Erro ao criar categoria: ' + errorMsg);
+            return;
+        }
+
+        showToast('Categoria criada com sucesso!');
+        fecharModalCategoria();
+        await carregarTodasCategorias();
+        await carregarCategorias(); // Atualizar select de categorias nas transações
+    } catch (error) {
+        console.error('Erro ao criar categoria:', error);
+        alert('Erro de conexão');
+    }
+});
+
+// Editar categoria
+document.getElementById('edit-category-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const catId = document.getElementById('edit-cat-id').value;
+    const name = document.getElementById('edit-cat-name').value.trim();
+    const type = parseInt(document.getElementById('edit-cat-type').value);
+    const color = document.getElementById('edit-cat-color').value;
+    const icon = document.getElementById('edit-cat-icon').value;
+
+    if (!name || !color || !icon) {
+        alert('Preencha todos os campos (nome, cor e ícone)');
+        return;
+    }
+
+    const payload = {
+        name,
+        type,
+        color,
+        icon,
+        userId: currentUser.userId
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/Categories/${catId}`, {
+            method: 'PUT',
+            headers: getFetchHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+            const errorMsg = errorData.errors ? errorData.errors.join('\n') : errorData.message;
+            alert('Erro ao atualizar categoria: ' + errorMsg);
+            return;
+        }
+
+        showToast('Categoria atualizada com sucesso!');
+        fecharModalEdicaoCategoria();
+        await carregarTodasCategorias();
+        await carregarCategorias(); // Atualizar select de categorias nas transações
+    } catch (error) {
+        console.error('Erro ao atualizar categoria:', error);
+        alert('Erro de conexão');
+    }
+});
+
+// Deletar categoria
+async function deletarCategoria(catId) {
+    if (!confirm('Tem certeza que deseja deletar esta categoria?\nNão é possível deletar categorias com transações associadas.')) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/Categories/${catId}`, {
+            method: 'DELETE',
+            headers: getFetchHeaders()
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+            const errorMsg = errorData.message || 'Erro ao deletar categoria';
+            alert(errorMsg);
+            return;
+        }
+
+        showToast('Categoria deletada com sucesso!');
+        await carregarTodasCategorias();
+        await carregarCategorias(); // Atualizar select de categorias nas transações
+    } catch (error) {
+        console.error('Erro ao deletar categoria:', error);
+        alert('Erro de conexão');
+    }
 }

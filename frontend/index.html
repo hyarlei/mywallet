@@ -31,6 +31,93 @@
         @keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Estilos de validação */
+        .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
+        .dark .input-error { border-color: #ef4444 !important; background-color: #7f1d1d !important; }
+        .input-success { border-color: #10b981 !important; }
+        .error-message { color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: none; }
+        .error-message.show { display: block; }
+        
+        /* Estilos de cartão de crédito realista */
+        .credit-card {
+            aspect-ratio: 1.586;
+            min-width: 320px;
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .credit-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+        }
+        
+        .credit-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .card-chip {
+            width: 48px;
+            height: 38px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #d4af37 0%, #f4e5b7 50%, #d4af37 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-chip::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            right: 3px;
+            bottom: 3px;
+            border-radius: 3px;
+            background: linear-gradient(135deg, #b8961e 0%, #d4af37 100%);
+        }
+        
+        .card-chip::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border-radius: 2px;
+            background: repeating-linear-gradient(
+                90deg,
+                rgba(0,0,0,0.1) 0px,
+                rgba(0,0,0,0.1) 2px,
+                transparent 2px,
+                transparent 4px
+            );
+        }
+        
+        .card-number {
+            font-family: 'Courier New', monospace;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        .card-pattern {
+            position: absolute;
+            opacity: 0.1;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-darkbg text-gray-800 dark:text-gray-100 transition-colors duration-300 relative">
@@ -157,6 +244,227 @@
         </div>
     </div>
 
+    <!-- Modal Nova Meta -->
+    <div id="goal-modal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white dark:bg-darkcard p-6 rounded-2xl w-full max-w-md shadow-2xl m-4 fade-in">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                <i data-lucide="target"></i> <span id="goal-modal-title">Nova Meta</span>
+            </h3>
+            <form id="goal-form" class="space-y-4">
+                <input type="hidden" id="goal-id">
+                <div>
+                    <label for="goal-title" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Título da Meta</label>
+                    <input type="text" id="goal-title" placeholder="Ex: Viagem para Europa" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white" required>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="goal-target" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Valor Alvo</label>
+                        <input type="text" id="goal-target" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white" required>
+                    </div>
+                    <div>
+                        <label for="goal-current" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Valor Atual</label>
+                        <input type="text" id="goal-current" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="goal-deadline" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Data Limite (Opcional)</label>
+                    <input type="date" id="goal-deadline" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white">
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="fecharModalMeta()" class="flex-1 py-3 bg-gray-200 dark:bg-gray-600 rounded-xl hover:bg-gray-300 transition">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">Salvar Meta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Nova Categoria -->
+    <div id="category-modal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white dark:bg-darkcard p-6 rounded-2xl w-full max-w-md shadow-2xl m-4 fade-in">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                <i data-lucide="plus-circle"></i> Nova Categoria
+            </h3>
+            <form id="category-form" class="space-y-4">
+                <div>
+                    <label for="cat-name" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Nome</label>
+                    <input type="text" id="cat-name" maxlength="50" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white" placeholder="Ex: Assinatura Netflix" required>
+                </div>
+                <div>
+                    <label for="cat-type" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Tipo</label>
+                    <select id="cat-type" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white cursor-pointer" required>
+                        <option value="1">💰 Receita</option>
+                        <option value="2" selected>💸 Despesa</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cat-color" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Cor</label>
+                    <div class="grid grid-cols-8 gap-2 mt-2">
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #10b981" data-color="#10b981"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #22c55e" data-color="#22c55e"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #f97316" data-color="#f97316"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #3b82f6" data-color="#3b82f6"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #6366f1" data-color="#6366f1"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #a855f7" data-color="#a855f7"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #ef4444" data-color="#ef4444"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #ec4899" data-color="#ec4899"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #14b8a6" data-color="#14b8a6"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #f59e0b" data-color="#f59e0b"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #8b5cf6" data-color="#8b5cf6"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #06b6d4" data-color="#06b6d4"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #84cc16" data-color="#84cc16"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #eab308" data-color="#eab308"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #d946ef" data-color="#d946ef"></button>
+                        <button type="button" class="color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #6b7280" data-color="#6b7280"></button>
+                    </div>
+                    <input type="hidden" id="cat-color" required>
+                </div>
+                <div>
+                    <label for="cat-icon" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Ícone</label>
+                    <div class="grid grid-cols-8 gap-2 mt-2 max-h-40 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="banknote"><i data-lucide="banknote" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="laptop"><i data-lucide="laptop" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="utensils"><i data-lucide="utensils" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="car"><i data-lucide="car" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="home"><i data-lucide="home" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="gamepad-2"><i data-lucide="gamepad-2" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="heart"><i data-lucide="heart" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="book"><i data-lucide="book" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="trending-up"><i data-lucide="trending-up" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="shopping-bag"><i data-lucide="shopping-bag" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="package"><i data-lucide="package" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="coffee"><i data-lucide="coffee" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="smartphone"><i data-lucide="smartphone" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="shirt"><i data-lucide="shirt" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="dumbbell"><i data-lucide="dumbbell" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="tv"><i data-lucide="tv" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="graduation-cap"><i data-lucide="graduation-cap" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="plane"><i data-lucide="plane" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="gift"><i data-lucide="gift" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="zap"><i data-lucide="zap" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="droplet"><i data-lucide="droplet" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="wifi"><i data-lucide="wifi" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="dog"><i data-lucide="dog" class="w-5 h-5"></i></button>
+                        <button type="button" class="icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="wrench"><i data-lucide="wrench" class="w-5 h-5"></i></button>
+                    </div>
+                    <input type="hidden" id="cat-icon" required>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="fecharModalCategoria()" class="flex-1 py-3 bg-gray-200 dark:bg-gray-600 rounded-xl hover:bg-gray-300 transition">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">Criar Categoria</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Editar Categoria -->
+    <div id="edit-category-modal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white dark:bg-darkcard p-6 rounded-2xl w-full max-w-md shadow-2xl m-4 fade-in">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                <i data-lucide="pencil"></i> Editar Categoria
+            </h3>
+            <form id="edit-category-form" class="space-y-4">
+                <input type="hidden" id="edit-cat-id">
+                <div>
+                    <label for="edit-cat-name" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Nome</label>
+                    <input type="text" id="edit-cat-name" maxlength="50" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white" required>
+                </div>
+                <div>
+                    <label for="edit-cat-type" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Tipo</label>
+                    <select id="edit-cat-type" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white cursor-pointer" required>
+                        <option value="1">💰 Receita</option>
+                        <option value="2">💸 Despesa</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="edit-cat-color" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Cor</label>
+                    <div class="grid grid-cols-8 gap-2 mt-2">
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #10b981" data-color="#10b981"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #22c55e" data-color="#22c55e"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #f97316" data-color="#f97316"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #3b82f6" data-color="#3b82f6"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #6366f1" data-color="#6366f1"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #a855f7" data-color="#a855f7"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #ef4444" data-color="#ef4444"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #ec4899" data-color="#ec4899"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #14b8a6" data-color="#14b8a6"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #f59e0b" data-color="#f59e0b"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #8b5cf6" data-color="#8b5cf6"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #06b6d4" data-color="#06b6d4"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #84cc16" data-color="#84cc16"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #eab308" data-color="#eab308"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #d946ef" data-color="#d946ef"></button>
+                        <button type="button" class="edit-color-btn w-10 h-10 rounded-lg border-2 border-transparent hover:scale-110 transition" style="background-color: #6b7280" data-color="#6b7280"></button>
+                    </div>
+                    <input type="hidden" id="edit-cat-color" required>
+                </div>
+                <div>
+                    <label for="edit-cat-icon" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Ícone</label>
+                    <div class="grid grid-cols-8 gap-2 mt-2 max-h-40 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="banknote"><i data-lucide="banknote" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="laptop"><i data-lucide="laptop" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="utensils"><i data-lucide="utensils" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="car"><i data-lucide="car" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="home"><i data-lucide="home" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="gamepad-2"><i data-lucide="gamepad-2" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="heart"><i data-lucide="heart" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="book"><i data-lucide="book" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="trending-up"><i data-lucide="trending-up" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="shopping-bag"><i data-lucide="shopping-bag" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="package"><i data-lucide="package" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="coffee"><i data-lucide="coffee" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="smartphone"><i data-lucide="smartphone" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="shirt"><i data-lucide="shirt" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="dumbbell"><i data-lucide="dumbbell" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="tv"><i data-lucide="tv" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="graduation-cap"><i data-lucide="graduation-cap" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="plane"><i data-lucide="plane" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="gift"><i data-lucide="gift" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="zap"><i data-lucide="zap" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="droplet"><i data-lucide="droplet" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="wifi"><i data-lucide="wifi" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="dog"><i data-lucide="dog" class="w-5 h-5"></i></button>
+                        <button type="button" class="edit-icon-btn p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-icon="wrench"><i data-lucide="wrench" class="w-5 h-5"></i></button>
+                    </div>
+                    <input type="hidden" id="edit-cat-icon" required>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="fecharModalEdicaoCategoria()" class="flex-1 py-3 bg-gray-200 dark:bg-gray-600 rounded-xl hover:bg-gray-300 transition">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Adicionar Valor à Meta -->
+    <div id="goal-amount-modal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white dark:bg-darkcard p-6 rounded-2xl w-full max-w-md shadow-2xl m-4 fade-in">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                <i data-lucide="coins"></i> Atualizar Valor
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Meta: <span id="goal-amount-title" class="font-semibold"></span></p>
+            <form id="goal-amount-form" class="space-y-4">
+                <input type="hidden" id="goal-amount-id">
+                <div>
+                    <label for="goal-amount-value" class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Valor</label>
+                    <input type="text" id="goal-amount-value" placeholder="R$ 0,00" onkeyup="formatarMoedaInput(this)" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded-xl dark:text-white" required>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="fecharModalValorMeta()" class="flex-1 py-3 bg-gray-200 dark:bg-gray-600 rounded-xl hover:bg-gray-300 transition">Cancelar</button>
+                    <button type="button" onclick="atualizarValorMeta(false)" class="flex-1 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition flex items-center justify-center gap-1">
+                        <i data-lucide="minus" class="w-4 h-4"></i> Retirar
+                    </button>
+                    <button type="button" onclick="atualizarValorMeta(true)" class="flex-1 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition flex items-center justify-center gap-1">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Adicionar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="app-screen" class="hidden fade-in">
         <nav class="bg-white dark:bg-darkcard border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
@@ -201,6 +509,18 @@
                     <div id="cards-container" class="flex overflow-x-auto gap-4 pb-4 hide-scroll card-container-padding"></div>
                 </div>
 
+                <div class="lg:col-span-3">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="target" class="w-5 h-5 text-indigo-500"></i> Minhas Metas
+                        </h3>
+                        <button onclick="abrirModalNovaMeta()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 cursor-pointer">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Nova Meta
+                        </button>
+                    </div>
+                    <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+
                 <div class="lg:col-span-2 bg-white dark:bg-darkcard p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Gastos Diários</h3>
                     <div class="h-64"><canvas id="lineChart"></canvas></div>
@@ -211,6 +531,20 @@
                         <canvas id="expenseChart"></canvas>
                         <div id="no-data-msg" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 hidden"><span class="text-sm">Sem dados</span></div>
                     </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-3">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="tag" class="w-5 h-5 text-indigo-500"></i> Gerenciar Categorias
+                        </h3>
+                        <button onclick="abrirModalNovaCategoria()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 cursor-pointer">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Nova Categoria
+                        </button>
+                    </div>
+                    <div id="categories-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
                 </div>
             </div>
 

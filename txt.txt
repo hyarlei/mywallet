@@ -1,0 +1,21 @@
+Backend:
+Editar/Deletar Transações (PUT e DELETE no TransactionsController) - Feito
+CRUD completo de Categorias (só tem GET, falta POST/PUT/DELETE) - Feito
+Controller de Goals (entidade existe mas não tem controller) - Feito
+Autenticação real (Google OAuth - está usando ID fixo) - Feito
+Validações mais robustas - Feito
+
+Frontend:
+Editar transações (modal existe mas não está implementado) - Feito
+Deletar transações (botão existe mas está desabilitado) - Feito
+Módulo de Metas/Goals (HTML existe parcialmente) - Feito
+Cartões de crédito (HTML existe mas não funciona) - Feito
+Exportar CSV (botão existe mas não funciona) - Feito
+Gerenciar categorias (criar/editar/deletar) - Feito
+
+Melhorias:
+Paginação na lista de transações
+Busca/Filtro avançado
+Notificações/Alertas
+Responsividade mobile aprimorada
+Testes unitários
