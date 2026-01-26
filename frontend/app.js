@@ -530,6 +530,16 @@ function renderList(transactions) {
         const valorFormatado = formatarMoeda(t.amount);
         const corValor = isExpense ? 'text-red-500' : 'text-emerald-500';
         const sinal = isExpense ? '-' : '+';
+        
+        // Badge de status
+        const statusBadge = t.isPaid 
+            ? '<span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded-full">Pago</span>'
+            : '<span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded-full">Pendente</span>';
+        
+        // Ícone do botão de alternar pagamento
+        const pagoIcon = t.isPaid ? 'x-circle' : 'check-circle';
+        const pagoTitle = t.isPaid ? 'Marcar como pendente' : 'Marcar como pago';
+        const pagoColor = t.isPaid ? 'text-yellow-500 hover:text-yellow-700' : 'text-green-500 hover:text-green-700';
 
         const row = document.createElement('tr');
         row.className = "hover:bg-gray-50 dark:hover:bg-gray-800 transition border-b border-gray-100 dark:border-gray-700";
@@ -542,13 +552,21 @@ function renderList(transactions) {
                     <span class="text-sm dark:text-gray-200 font-medium">${t.categoryName}</span>
                 </div>
             </td>
-            <td class="p-4 text-sm dark:text-gray-300 font-medium" data-label="Descrição">${t.description}</td>
+            <td class="p-4" data-label="Descrição">
+                <div class="flex flex-col gap-1">
+                    <span class="text-sm dark:text-gray-300 font-medium">${t.description}</span>
+                    ${statusBadge}
+                </div>
+            </td>
             <td class="p-4 text-sm text-gray-500" data-label="Data">${formatarData(t.date)}</td>
             <td class="p-4 text-right font-bold text-sm ${corValor}" data-label="Valor">
                 ${sinal} ${valorFormatado}
             </td>
             <td class="p-4 text-center" data-label="Ações">
                 <div class="flex gap-2 justify-center">
+                    <button onclick="togglePagoTransacao('${t.id}')" class="${pagoColor} transition" title="${pagoTitle}">
+                        <i data-lucide="${pagoIcon}" class="w-4 h-4"></i>
+                    </button>
                     <button onclick="editarTransacao('${t.id}')" class="text-blue-500 hover:text-blue-700 transition" title="Editar">
                         <i data-lucide="pencil" class="w-4 h-4"></i>
                     </button>
@@ -1294,6 +1312,29 @@ window.deletarTransacao = async (id) => {
     } catch (e) {
         console.error(e);
         alert("Erro de conexão.");
+    }
+};
+
+// Alternar status de pagamento (pago/pendente)
+window.togglePagoTransacao = async (id) => {
+    try {
+        const res = await fetch(`${API_URL}/Transactions/${id}/toggle-paid`, {
+            method: 'PATCH',
+            headers: getFetchHeaders()
+        });
+
+        if (res.ok) {
+            const updatedTransaction = await res.json();
+            const status = updatedTransaction.isPaid ? 'pago' : 'pendente';
+            showToast(`Transação marcada como ${status}!`, 'success');
+            await carregarTransacoes();
+            verificarAlertas(); // Atualiza os alertas
+        } else {
+            showToast("Erro ao atualizar status", 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast("Erro de conexão", 'error');
     }
 };
 

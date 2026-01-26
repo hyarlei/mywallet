@@ -6,8 +6,40 @@ using Microsoft.IdentityModel.Tokens;
 using MyWallet.API.Data;
 using MyWallet.API.Services;
 using MyWallet.API.Filters;
+using MyWallet.API.Middleware;
+using AspNetCoreRateLimit;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configurar Rate Limiting
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(options =>
+{
+    options.EnableEndpointRateLimiting = true;
+    options.StackBlockedRequests = false;
+    options.HttpStatusCode = 429;
+    options.RealIpHeader = "X-Real-IP";
+    options.GeneralRules = new List<RateLimitRule>
+    {
+        new RateLimitRule
+        {
+            Endpoint = "*",
+            Period = "1m",
+            Limit = 100 // 100 requisições por minuto
+        },
+        new RateLimitRule
+        {
+            Endpoint = "*/api/auth/*",
+            Period = "1m",
+            Limit = 10 // Apenas 10 tentativas de login por minuto
+        }
+    };
+});
+builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+builder.Services.AddInMemoryRateLimiting();
 
 // Configuração de Controllers e Swagger
 builder.Services.AddControllers(options =>
@@ -88,6 +120,12 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Middleware de tratamento de erros global (DEVE vir PRIMEIRO)
+app.UseMiddleware<ErrorHandlingMiddleware>();
+
+// Rate Limiting
+app.UseIpRateLimiting();
 
 // Pipeline de requisições HTTP
 if (app.Environment.IsDevelopment())

@@ -230,3 +230,5 @@
 /home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 /home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Microsoft.IdentityModel.Tokens.dll
 /home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/System.IdentityModel.Tokens.Jwt.dll
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/AspNetCoreRateLimit.dll
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Newtonsoft.Json.dll

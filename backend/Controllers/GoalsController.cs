@@ -75,6 +75,10 @@ namespace MyWallet.API.Controllers
             if (dto.TargetAmount <= 0)
                 return BadRequest("O valor da meta deve ser maior que zero.");
 
+            // Validar que currentAmount não seja negativo
+            if (dto.CurrentAmount < 0)
+                return BadRequest("O valor atual não pode ser negativo.");
+
             var goal = new Goal
             {
                 Title = dto.Title,
@@ -149,6 +153,10 @@ namespace MyWallet.API.Controllers
             if (goal == null)
                 return NotFound("Meta não encontrada.");
 
+            // Validar que a meta pertence ao usuário
+            if (goal.UserId != dto.UserId)
+                return Forbid();
+
             if (dto.Amount <= 0)
                 return BadRequest("O valor deve ser maior que zero.");
 
@@ -182,12 +190,16 @@ namespace MyWallet.API.Controllers
 
         // DELETE: api/goals/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(Guid id, [FromQuery] Guid userId)
         {
             var goal = await _context.Goals.FindAsync(id);
 
             if (goal == null)
                 return NotFound("Meta não encontrada.");
+
+            // Validar que a meta pertence ao usuário
+            if (goal.UserId != userId)
+                return Forbid();
 
             _context.Goals.Remove(goal);
             await _context.SaveChangesAsync();

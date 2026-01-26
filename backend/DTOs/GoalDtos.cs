@@ -36,10 +36,13 @@ namespace MyWallet.API.DTOs
     // DTO para adicionar/remover valor da meta
     public record UpdateGoalAmountDto(
         [Required(ErrorMessage = "O valor é obrigatório")]
-        [Range(0.01, 999999999.99, ErrorMessage = "O valor deve estar entre 0.01 e 999.999.999,99")]
+        [Range(0.01, 999999999.99, ErrorMessage = "O valor deve estar entre 0.01 e 999.999,99")]
         decimal Amount,
         
         [Required(ErrorMessage = "O tipo de operação é obrigatório")]
-        bool IsAddition // true = adicionar, false = remover
+        bool IsAddition, // true = adicionar, false = remover
+        
+        [Required(ErrorMessage = "O usuário é obrigatório")]
+        Guid UserId
     );
 }

@@ -76,6 +76,21 @@ namespace MyWallet.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateCreditCardDto dto)
         {
+            // Validar que os últimos 4 dígitos são numéricos e têm exatamente 4 caracteres
+            if (string.IsNullOrWhiteSpace(dto.Last4Digits) || dto.Last4Digits.Length != 4 || !dto.Last4Digits.All(char.IsDigit))
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "Last4Digits deve conter exatamente 4 dígitos numéricos" } });
+
+            // Validar dia de vencimento (1-31)
+            if (dto.DueDay.HasValue && (dto.DueDay.Value < 1 || dto.DueDay.Value > 31))
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "Dia de vencimento deve estar entre 1 e 31" } });
+
+            // Validar valores positivos
+            if (dto.CurrentBill < 0)
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "Valor da fatura não pode ser negativo" } });
+
+            if (dto.CreditLimit.HasValue && dto.CreditLimit.Value < 0)
+                return BadRequest(new { message = "Validação falhou", errors = new[] { "Limite de crédito não pode ser negativo" } });
+
             // Validar que os últimos 4 dígitos são únicos para o usuário
             var existingCard = await _context.CreditCards
                 .FirstOrDefaultAsync(c => c.UserId == dto.UserId && c.Last4Digits == dto.Last4Digits);
@@ -193,12 +208,16 @@ namespace MyWallet.API.Controllers
 
         // DELETE: api/creditcards/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(Guid id, [FromQuery] Guid userId)
         {
             var card = await _context.CreditCards.FindAsync(id);
 
             if (card == null)
                 return NotFound(new { message = "Cartão não encontrado" });
+
+            // Validar que o cartão pertence ao usuário
+            if (card.UserId != userId)
+                return Forbid();
 
             _context.CreditCards.Remove(card);
             await _context.SaveChangesAsync();

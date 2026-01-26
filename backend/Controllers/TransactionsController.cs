@@ -75,6 +75,10 @@ namespace MyWallet.API.Controllers
             if (category.UserId != dto.UserId)
                 return BadRequest(new { message = "Validação falhou", errors = new[] { "Categoria não pertence ao usuário" } });
 
+            // NOVA VALIDAÇÃO: Categoria deve ser do mesmo tipo que a transação
+            if (category.Type != dto.Type)
+                return BadRequest(new { message = "Validação falhou", errors = new[] { $"Categoria de {(category.Type == TransactionType.Income ? "receita" : "despesa")} não pode ser usada em {(dto.Type == TransactionType.Income ? "receita" : "despesa")}" } });
+
             // Cria a Entidade
             var transaction = new Transaction
             {
@@ -156,6 +160,47 @@ namespace MyWallet.API.Controllers
                 transaction.Type.ToString(),
                 transaction.Date,
                 category.Name,
+                transaction.CategoryId,
+                transaction.IsPaid
+            );
+
+            return Ok(responseDto);
+        }
+
+        // PATCH: api/transactions/{id}/toggle-paid
+        [HttpPatch("{id}/toggle-paid")]
+        public async Task<IActionResult> TogglePaid(Guid id)
+        {
+            // Pegar userId do token JWT
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized("Token inválido.");
+
+            var transaction = await _context.Transactions
+                .Include(t => t.Category)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (transaction == null)
+                return NotFound(new { message = "Transação não encontrada" });
+
+            // Valida se a transação pertence ao usuário
+            if (transaction.UserId != userId)
+                return Forbid();
+
+            // Alterna o status de pagamento
+            transaction.IsPaid = !transaction.IsPaid;
+            transaction.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            // Retorna o DTO atualizado
+            var responseDto = new TransactionDto(
+                transaction.Id,
+                transaction.Description,
+                transaction.Amount,
+                transaction.Type.ToString(),
+                transaction.Date,
+                transaction.Category?.Name ?? "Sem Categoria",
                 transaction.CategoryId,
                 transaction.IsPaid
             );
