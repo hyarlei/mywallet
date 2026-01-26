@@ -3,6 +3,9 @@
 .env.local
 .env.production
 
+# Personal notes
+txt.txt
+
 # User-specific files
 *.suo
 *.user
