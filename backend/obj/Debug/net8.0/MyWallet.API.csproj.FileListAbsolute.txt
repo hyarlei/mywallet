@@ -232,3 +232,5 @@
 /home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/System.IdentityModel.Tokens.Jwt.dll
 /home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/AspNetCoreRateLimit.dll
 /home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Newtonsoft.Json.dll
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/DotNetEnv.dll
+/home/hyarleisilva/MyWallet.API/backend/bin/Debug/net8.0/Sprache.dll

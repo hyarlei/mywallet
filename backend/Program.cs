@@ -8,8 +8,29 @@ using MyWallet.API.Services;
 using MyWallet.API.Filters;
 using MyWallet.API.Middleware;
 using AspNetCoreRateLimit;
+using DotNetEnv;
+
+// Carregar variáveis do arquivo .env
+var rootPath = Directory.GetCurrentDirectory();
+var envPath = Path.Combine(Directory.GetParent(rootPath)?.FullName ?? rootPath, ".env");
+if (File.Exists(envPath))
+{
+    Env.Load(envPath);
+}
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Sobrescrever configurações com variáveis de ambiente do .env
+builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+{
+    ["Jwt:Secret"] = Environment.GetEnvironmentVariable("JWT_SECRET") ?? builder.Configuration["Jwt:Secret"],
+    ["Jwt:Issuer"] = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? builder.Configuration["Jwt:Issuer"],
+    ["Jwt:Audience"] = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? builder.Configuration["Jwt:Audience"],
+    ["Jwt:ExpirationMinutes"] = Environment.GetEnvironmentVariable("JWT_EXPIRATION_MINUTES") ?? builder.Configuration["Jwt:ExpirationMinutes"],
+    ["Google:ClientId"] = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ?? builder.Configuration["Google:ClientId"],
+    ["Google:ClientSecret"] = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ?? builder.Configuration["Google:ClientSecret"],
+    ["ConnectionStrings:DefaultConnection"] = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING") ?? builder.Configuration.GetConnectionString("DefaultConnection")
+});
 
 // Configurar Rate Limiting
 builder.Services.AddMemoryCache();
